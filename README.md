@@ -86,26 +86,3 @@ $ npx sequelize-cli db:migrate:undo
 # Migration Down(all): 
 $ npx sequelize-cli db:migrate:undo:all
 ```
-
-## Auth0 settings
-
-- Login to your auth0 account or if don't have any create a new one
-- After login, on the home page, in the left menu expand the "Applications"
-- Select 'Applications' from the expanded sub menu
-- Click on "Create application", a modal/dialog will get opened
-- Write the name in the "name" field and select the third option (Regular Web Applications) and click create
-- Once your application is created, open the application(if not already opened), go to settings (in tabs)
-- Copy your domain, Client ID, and Client Secret and override in your ".env" in the API repository
-- Scroll down the page and expand advanced settings
-- Go to "Grant types" (in tabs), check the "Password" unchecked, and save changes
-- Go to "APIs" in the left menu under Applications 
-- You can create a new API or select the API already created
-- In "Machine To Machine Applications" authorize your app (you created before)
-- Expand your app in permission check all the permissions you want to use in your project, and update
-- Go to "Database" in the left menu under Authentication 
-- Create a new database, enter your database name, and click create
-- Once your database is created lower the password strength bar to "Lower case (a-z), upper case (A-Z) and numbers (0-9)"
-- In "Applications" (in tabs) check your app name
-- update the "AUTH0_DB" in your .env with the name of the database you created
-
-## Mux settings
