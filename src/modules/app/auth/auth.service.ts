@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { UserService } from 'src/modules/app/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { Op } from 'sequelize';
 
 @Injectable()
 export class AuthService {
@@ -28,7 +29,7 @@ export class AuthService {
 	 */
 	async validateUser(email: string, pass: string) {
 		try {
-			const user = await this._userService.findOne({ email: email, role: 'admin' });
+			const user = await this._userService.findOne({ email: email, role: { [Op.not]: 'admin'} });
 			if (!user) {
 				return { status: 'error', message: "User not found! please try again" };
 			}
