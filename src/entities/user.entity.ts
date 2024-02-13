@@ -1,4 +1,4 @@
-import { Column, DataType, HasMany, BelongsToMany, Model, Table } from "sequelize-typescript";
+import { Column, DataType, Model, Table } from "sequelize-typescript";
 
 @Table({
 	modelName: 'tbl_users'
@@ -67,16 +67,16 @@ export class User extends Model<User>{
 		type: DataType.STRING,
 		field: 'reset_password_code'
 	})
-	resetPasswordCode: string;	
-
+	resetPasswordCode: string;
+	
 	@Column({
-		type: DataType.BIGINT,
+		type: DataType.INTEGER,
 		field: 'created_by'
 	})
 	createdBy: number;
 
 	@Column({
-		type: DataType.BIGINT,
+		type: DataType.INTEGER,
 		field: 'updated_by'
 	})
 	updatedBy: number;

@@ -1,14 +1,14 @@
-import { Routes } from 'nest-router';
-import { AdminEndModule } from './modules/admin/adminEnd.module';
-import { AppEndModule } from './modules/app/appEnd.module';
+import { WebAppModule } from './modules/app/webApp.module';
 
-export const routes: Routes = [
+export const routes = [
   {
     path: '',
-    module: AppEndModule,
+    module: WebAppModule,
   },
-  {
-    path: '/admin',
-    module: AdminEndModule,
-  },
+
+  // Will uncomment this code when we will integrate the admin module
+  // {
+  //   path: '/admin',
+  //   module: AdminModule,
+  // },
 ];

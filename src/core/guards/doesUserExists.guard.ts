@@ -14,12 +14,7 @@ export class DoesUserExist implements CanActivate {
 		return this.validateRequest(request);
 	}
 
-	/**
-	 * To check the weather user exists or not
-	 * @param request any
-	 * @returns true | exception
-	 */
-	async validateRequest(request: any) {
+	async validateRequest(request) {
 		const userExist = await this._userService.findByEmail(request.body.email);
 		if (userExist) {
 			throw new ForbiddenException('This email already exist');

@@ -1,34 +1,33 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
+import GlobalResponses from 'src/core/config/GlobalResponses';
 
 @Injectable()
-export class MailService {
-  constructor(private _mailerService: MailerService) { }
+export class MailService
+{
+	constructor (
+		private _mailerService: MailerService,
+		private readonly _globalResponses: GlobalResponses
+	) { }
 
-  /**
-   * Send email using nest mailer service 
-   * @param template string
-   * @param to string
-   * @param bcc string
-   * @param subject string
-   * @param viewData object
-   * @returns object
-   */
-  async sendEmail(template: string, to: string, bcc: string, subject: string, viewData: any) {
-    try {
-      let email = await this._mailerService.sendMail({
-        to: to,
-        bcc: bcc,
-        subject: subject,
-        template: `./${template}`,
-        context: viewData,
-      });
+	async sendEmail (template, to, bcc, subject, viewData)
+	{
+		try
+		{
+			const email = await this._mailerService.sendMail({
+				to: to,
+				bcc: bcc,
+				subject: subject,
+				template: `./${template}`,
+				context: viewData,
+			});
 
-      console.error('email: ', email);
-      return email
-    } catch (error) {
-      console.error(error);
-      return { status: 'error', message: 'Something went wrong'}      
-    }
-  }
+			console.error('email: ', email);
+			return email;
+		} catch (error)
+		{
+			console.error(error);
+			return this._globalResponses.formatResponse('error', null, null);
+		}
+	}
 }

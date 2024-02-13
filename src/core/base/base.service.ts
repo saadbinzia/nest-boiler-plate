@@ -3,162 +3,183 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * BaseService
+ * 
+ * @description This class will be used as a middleware between the database and our code logic
  */
 @Injectable()
-export class BaseService {
+export class BaseService
+{
 
-  /**
-   * Sequelize Schema Model
-   */
-  protected model: any;
+	/**
+	 * Sequelize Schema Model
+	 */
+	protected model: any;
 
-  /**
-   * 
-   * @param model SequelizeSchemaModel
-   */
-  constructor(model: any) {
-    this.model = model;
-  }
+	/**
+	 * 
+	 * @param {any} model SequelizeSchemaModel
+	 */
+	constructor (model: any)
+	{
+		this.model = model;
+	}
 
-  /**
-   * Find one record by condition
-   *
-   * @param condition any
-   * @param include any
-   * @param attributes any
-   * @param order any
-   * @returns Model
-   */
-  public findOne(condition: any, include?: any, attributes?: any, order?: any,) {
-    return this.model.findOne({
-      where: condition,
-      include: include,
-      attributes: attributes,
-      order: order
-    },);
-  }
+	/**
+	 * Find one record by condition
+	 *
+	 * @param {any} condition
+	 * @returns {any}
+	 */
+	public findOne (condition: any, include?: any, attributes?: any, order?: any)
+	{
+		return this.model.findOne({
+			where: condition, include: include, attributes: attributes, order: order
+		},);
+	}
 
-  /**
-   * Find one record by id
-   *
-   * @param id number
-   * @param include any
-   * @param attributes any
-   * @param order any
-   * @returns Model
-   */
-  public findOneById(id: number, include?: any, attributes?: any, order?: any,) {
-    return this.findOne({ id: id }, include, attributes, order);
-  }
+	/**
+	 * Find one record by id
+	 *
+	 * @param {number} id
+	 * @returns {any}
+	 */
+	public findOneById (id: number, include?: any, attributes?: any, order?: any)
+	{
+		return this.findOne({ id: id }, include, attributes, order);
+	}
 
-  /**
-   * Find or create 
-   *
-   * @param condition any
-   * @param fields any
-   * @returns Model
-   */
-  public findOrCreate(condition: any, fields: any) {
-    return this.model.findOrCreate({ where: condition, defaults: fields });
-  }
+	/**
+	 * Find or create 
+	 *
+	 * @param {any} condition
+	 * @param {any} fields
+	 * @returns {any}
+	 */
+	public findOrCreate (condition: any, fields: any)
+	{
+		return this.model.findOrCreate({ where: condition, defaults: fields });
+	}
 
-  /**
-   * Find all by condition
-   *
-   * @param condition any
-   * @param order any
-   * @param include any
-   * @param attributes any
-   * @param offset any
-   * @param limit any
-   * @returns Model
-   */
-  public findAll(condition: any, sortOrder?: any, include?: any, attributes?: any, offset?: any, limit?: any) {
-    return this.model.findAll({
-      where: condition,
-      order: sortOrder,
-      include: include,
-      attributes: attributes,
-      offset: offset,
-      limit: limit,
-    });
-  }
+	/**
+	 * Find all by condition
+	 *
+	 * @param {any} condition
+	 * @returns {any}
+	 */
+	public findAll (condition: any, include?: any, attributes?: any, order?: any, offset?: any, limit?: any)
+	{
+		return this.model.findAll({
+			where: condition,
+			order: order,
+			include: include,
+			attributes: attributes,
+			offset: offset,
+			limit: limit,
+		});
+	}
 
-  /**
-   * Count record by condition
-   * @param condition any
-   * @returns 
-   */
-  public count(condition: any) {
-    return this.model.count({ where: condition });
-  }
+	/**
+	 * Find and count all by condition
+	 * @param {any} condition
+	 * @returns {any}
+	 */
+	public findAndCountAll (condition: any)
+	{
+		return this.model.findAndCountAll({ where: condition });
+	}
 
-  /**
-   * Find and count all by condition
-   * @param condition any
-   * @returns Model
-   */
-  public findAndCountAll(condition: any) {
-    return this.model.findAndCountAll({ where: condition });
-  }
+	/**
+	 * Create new record.
+	 *
+	 * @param {any} fields
+	 * @returns {any}
+	 */
+	public create (fields: any, userId?: number)
+	{
+		if (userId)
+		{
+			fields.createdBy = userId;
+		}
 
-  /**
-   * Create new record.
-   *
-   * @param fields any
-   * @returns Model
-   */
-  public create(fields: any) {
-    return this.model.create(fields);
-  }
+		return this.model.create(fields);
+	}
 
-  /**
-   * Update record(s) by condition;
-   *
-   * @param condition any
-   * @param fields any
-   * @returns array
-   */
-  public update(condition: any, fields: any) {
-    return this.model.update(fields, { where: condition })
-  }
+	/**
+	 * Bulk Create.
+	 * @description TO insert data in bulk in table
+	 * @param {Array<any>} fieldsRecord Array of any
+	 * @returns {any}
+	 */
+	public bulkCreate (fieldsRecord: any[], userId?: number)
+	{
+		if (userId)
+		{
+			for (let index = 0; index < fieldsRecord.length; index++)
+			{
+				const fields = fieldsRecord[index];
 
-  /**
-   * Update record(s) by condition;
-   *
-   * @param condition any
-   * @param fields any
-   * @returns object
-   */
-  public updateOne(condition: any, fields: any) {
-    return this.model.updateOne(fields, { where: condition })
-  }
+				fields.createdBy = userId;
+			}
+		}
 
-  /**
-   * Update one record by id
-   * @param id number
-   * @param fields any
-   * @returns object
-   */
-  public updateById(id: number, fields: any) {
-    return this.updateOne({ id: id }, fields);
-  }
+		return this.model.bulkCreate(fieldsRecord);
+	}
 
-  /**
-   * Delete record(s) by condition
-   * @param condition any
-   * @returns 
-   */
-  public delete(condition: any) {
-    return this.model.destroy({ where: condition })
-  }
+	/**
+	 * Update record(s) by condition;
+	 *
+	 * @param {any} condition
+	 * @param {any} updatedFields any
+	 * @returns {any} 
+	 */
+	public update (condition: any, updatedFields: any, userId?: number)
+	{
+		if (userId)
+		{
+			updatedFields.updatedBy = userId;
+		}
 
-  /**
-   * Delete one record by id (primary key)
-   * @param id number
-   * @returns 
-   */
-  public deleteById(id: number) {
-    return this.delete({ id: id });
-  }
+		return this.model.update(updatedFields, { where: condition });
+	}
+
+	/**
+	 * Update one record by id
+	 * @param {number} id
+	 * @param {any} fields
+	 * @returns {any} 
+	 */
+	public updateById (id: number, fields: any, userId?: number)
+	{
+		return this.update({ id: id }, fields, userId);
+	}
+
+	/**
+	 * Delete record(s) by condition
+	 * @param {any} condition
+	 * @returns {any}
+	 */
+	public delete (condition: any): any
+	{
+		return this.model.destroy({ where: condition });
+	}
+
+	/**
+	 * Delete one record by id (primary key)
+	 * @param {number} id
+	 * @returns {any}
+	 */
+	public deleteById (id: number): any
+	{
+		return this.delete({ id: id });
+	}
+
+	/**
+	 * Count record by condition
+	 * @param {any} condition
+	 * @returns {any}
+	 */
+	public count (condition: any): any
+	{
+		return this.model.count({ where: condition });
+	}
 }

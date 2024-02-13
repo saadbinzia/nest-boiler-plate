@@ -71,18 +71,3 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](LICENSE).
-
-## Migration comands
-```bash
-# Create Migration: 
-$ npx sequelize-cli migration:generate --name NAME_OF_YOUR_MIGRATION/MIGRATION_TITLE
-
-# Migration Up: 
-$ npx sequelize-cli db:migrate
-
-# Migration Down(one): 
-$ npx sequelize-cli db:migrate:undo
-
-# Migration Down(all): 
-$ npx sequelize-cli db:migrate:undo:all
-```

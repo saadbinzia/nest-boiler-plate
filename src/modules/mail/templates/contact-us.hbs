@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Welcome</title>
+		<style type="text/css">
+			@media screen and (max-width: 630px) {
+				.table {
+					padding: 10px !important;
+				}
+
+				.logo-wrapper {
+					height: 76px !important;
+				}
+
+				.logo {
+					max-width: 140px !important;
+					height: auto !important;
+				}
+
+				.padding-x-20 {
+					padding-left: 20px !important;
+					padding-right: 20px !important;
+				}
+			}
+		</style>
+	</head>
+	<body style="margin:0;
+             padding:0;
+             background-color:#F2F3FF;
+             font-family: Arial, sans-serif;
+             font-size:18px;
+             line-height: 1.8;
+             -moz-osx-font-smoothing:grayscale;">
+		<table class="table" style="border-spacing:0;
+             max-width: 100%; 
+             padding: 30px; 
+             width: 100%; 
+             background-color: #F2F3FF;">
+			<tr>
+				<td style="padding: 0;">
+					<table style="border-spacing:0;
+                    max-width: 658px; 
+                    margin: 0 auto; 
+                    width: 100%; 
+                    background-color: #FFFFFF;">
+						<tr>
+							<td class="logo-wrapper" style="padding: 0; 
+                            text-align: center;
+                            background-color:#F2F3FF;
+                            height: 99px;
+                            display: block;">
+								<img class="logo" style="max-width: 100%;" src="{{ logoImage }}" width="182" height="99" alt="logo" />
+							</td>
+						</tr>
+						<tr>
+							<td class="padding-x-20" style="padding: 48px 48px 0 48px; 
+                            text-align: left;">
+								<h4 style="color: #120A34; 
+                                        font-weight: bold; 
+                                        margin: 0 0 0;
+                                        font-family: Arial, sans-serif;
+                                        font-size:18px;
+                                        line-height: 1.8;">New user want to reach you </h4>
+								<p style="color: #120A34; 
+                                    font-weight: normal; 
+                                    margin: 40px 0 0;
+                                    font-family: Arial, sans-serif;
+                                    font-size:18px;
+                                    line-height: 1.8;">Hey Team,</p>
+								<p style="color: #120A34; 
+                                    font-weight: normal; 
+                                    margin: 30px 0 0;
+                                    font-family: Arial, sans-serif;
+                                    font-size:18px;
+                                    line-height: 1.8;">We hope this email finds you well. We wanted to inform you that a new client has expressed interest in your services. They found your business and were impressed by your portfolio and reputation in the industry. </p>
+								<p style="color: #120A34; 
+                                    font-weight: normal; 
+                                    margin: 30px 0 0;
+                                    font-family: Arial, sans-serif;
+                                    font-size:18px;
+                                    line-height: 1.8;"> Here are the client details: <br> Name: {{firstName}} {{lastName}}, <br /> Email: {{email}}
+									<br /> Tel: {{tel}}, <br /> Company: {{company}}
+									<br /> Message: 
+									{{message}}
+								</p>
+								<p style="color: #120A34; 
+                                    font-weight: normal; 
+                                    margin: 30px 0 40px;
+                                    font-family: Arial, sans-serif;
+                                    font-size:18px;
+                                    line-height: 1.8;">Kind regards, <br>
+								</p>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>

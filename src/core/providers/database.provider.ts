@@ -16,7 +16,7 @@ export const databaseProvider = [
 				database: configService.get('DB'),
 			});
 			sequelize.addModels(entities);
-			// NOTE: Do not enable this as per we are using migrations and don't want to syncs using model first.
+			// NOTE: Do not enable this as per we are using migrations and don't want to syncs usign model first.
 			// await sequelize.sync();
 			return sequelize;
 		},

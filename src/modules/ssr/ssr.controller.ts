@@ -1,38 +1,38 @@
-import { Controller, Get, Param, Req, Res } from '@nestjs/common';
+import { Controller, Get, Req, Res } from '@nestjs/common';
+import GlobalResponses from 'src/core/config/GlobalResponses';
 
 @Controller('ssr')
 export class SSRController {
   constructor(
+    private readonly _globalResponses: GlobalResponses
   ) { }
 
-  @Get(':uniqueId')
-  async Share(@Req() req, @Res() res, @Param() param) {
+  @Get('')
+  async ssr(@Req() req, @Res() res) {
     try {
-      let title: string, description: string, image: string, url: string, videoLink: string = '', totalDuration = 0
-      title = 'Title';
-      description = 'Description';
-      image = 'static/no-image.jpg';
-      url = `ANY URL`;
+      let title: string, description: string, image: string, url: string
+      const videoLink: string = '', totalDuration = 0
 
       return res.send(this.getMetaTagsHtml(title, description, image, url, videoLink, totalDuration));
 
     } catch (error) {
       console.error(error);
-      return res.json({ status: 'error', message: 'Something went wrong' })
+      return res.json(this._globalResponses.formatResponse('error', null, null))
     }
   }
 
 
   /**
    * Get og:meta tags 
-   * @param title string
-   * @param description string
-   * @param imageUrl string
-   * @param url string
-   * @param videoLink string
-   * @returns string
+   * @param {string} title
+   * @param {string} description
+   * @param {string} imageUrl
+   * @param {string} url
+   * @param {string} videoLink
+   * @param {number} totalDuration
+   * @returns {any}
    */
-  getMetaTagsHtml(title: string, description: string, imageUrl: string, url: string, videoLink?: string, totalDuration?: number) {
+  getMetaTagsHtml(title: string, description: string, imageUrl: string, url: string, videoLink?: string, totalDuration?: number): any {
     return `
     <!DOCTYPE html>
     <html lang="en">
