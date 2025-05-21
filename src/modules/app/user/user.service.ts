@@ -1,175 +1,122 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { Op } from 'sequelize';
-import { v1 as uuidv1 } from 'uuid';
-import { BaseService } from 'src/core/base/base.service';
-import { MailService } from 'src/modules/mail/mail.service';
-import { User } from 'src/entities';
-import { VerificationLinkDTO } from './dto/verificationLink.dto';
-import { ForgetPasswordDTO } from './dto/forgetPassword.dto';
-import GlobalResponses from 'src/core/config/GlobalResponses';
-
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
+import * as bcrypt from "bcrypt";
+import { Request } from "express";
+import { BaseService } from "src/core/base/base.service";
+import { GlobalEnums } from "src/core/config/globalEnums";
+import GlobalResponses from "src/core/config/GlobalResponses";
+import { ApiResponse } from "src/core/config/interface/globalResponses.interface";
+import { User } from "src/entities";
+import { VerificationCodeTypeEnum } from "src/modules/shared/auth/userVerificationCode/interface/userVerificationCode.interface";
+import { UserVerificationCodeService } from "src/modules/shared/auth/userVerificationCode/userVerificationCode.service";
+import { UserDTO } from "./dto";
 
 @Injectable()
-export class UserService extends BaseService
-{
-	constructor (
-		@Inject(forwardRef(() => MailService))
-		private _mailService: MailService,
-		private _globalResponses: GlobalResponses
-	)
-	{
-		super(User);
-	}
+export class UserService extends BaseService {
+  constructor(
+    @Inject(forwardRef(() => UserVerificationCodeService))
+    private _userVerificationCodeService: UserVerificationCodeService,
+    private _globalResponses: GlobalResponses,
+  ) {
+    super(User);
+  }
 
-	async findByEmail (email: string)
-	{
-		return this.findOne({ email: email.toLowerCase() });
-	}
+  /**
+   * Find by email
+   * @description Find user by email.
+   * @param {Request} req
+   * @param {String} email
+   * @returns {Promise<object>}
+   */
+  async findByEmail(email: string): Promise<object> {
+    return this.findOne({ email: email.toLowerCase() });
+  }
 
-	/**
-	 * 
-	 * @param {VerificationLinkDTO} payload
-	 * @returns {any}
-	 */
-	async createVerificationLink (payload: VerificationLinkDTO): Promise<any>
-	{
+  /**
+   * Generate username
+   * @description generate unique username.
+   * @param {String} name
+   * @returns {Promise<string>}
+   */
+  async generateUsername(name: string): Promise<string> {
+    const uid = name + Number(new Date());
+    const idExist = await this.findOne({ username: uid });
+    if (!idExist) {
+      return uid;
+    } else {
+      return this.generateUsername(uid);
+    }
+  }
 
-		let response = this._globalResponses.formatResponse('error', null, null);
+  /**
+   * Create user
+   * @description Create new user record.
+   * @param {UserDTO} payload
+   * @return {Promise<ApiResponse>}
+   */
+  async createUser(req: Request, payload: UserDTO): Promise<ApiResponse> {
+    let response = this._globalResponses.formatResponse(
+      req,
+      GlobalEnums.RESPONSE_STATUSES.ERROR,
+      null,
+      null,
+    );
 
-		if (payload.email && payload.companyName)
-		{
+    const userExists = await this.findByEmail(payload.email);
+    const phoneNumberExists = await this.findOne({
+      phoneNumber: payload.phoneNumber,
+    });
 
-			const fields = {
-				...payload,
-				email: payload.email.toLowerCase(),
-				verificationLink: await this.generateVerificationLink(),
-				role: 'user',
-				registrationStatus: 'account_created',
-			};
-			const user = await this.create(fields);
+    // Check if user exists against this email then notify user.
+    if (userExists) {
+      response = this._globalResponses.formatResponse(
+        req,
+        GlobalEnums.RESPONSE_STATUSES.ERROR,
+        null,
+        "email_already_exists",
+      );
+    } else if (phoneNumberExists) {
+      response = this._globalResponses.formatResponse(
+        req,
+        GlobalEnums.RESPONSE_STATUSES.ERROR,
+        null,
+        "phone_number_already_exists",
+      );
+    } else {
+      let hashPass = null;
 
+      if (payload.password) {
+        hashPass = await bcrypt.hash(payload.password, 10);
+      }
+      const newUser = await this.create({
+        ...payload,
+        password: hashPass,
+        role: GlobalEnums.USER_ROLES.USER,
+        status: GlobalEnums.ACTIVE_STATUSES.ACTIVE,
+        username: payload.phoneNumber,
+        registrationStatus:
+          GlobalEnums.REGISTRATION_STATUSES.REGISTRATION_STARTED,
+      });
 
-			this._mailService.sendEmail('signup-confirmation', user.email, null, 'Verify your account', {
-				name: user.firstName,
-				logoImage: `${process.env['API_URL']}/static/email/logo.png`,
-				url: `${process.env['APP_URL']}/sign-up?uid=${user.verificationLink}`
-			});
+      if (newUser) {
+        await this._userVerificationCodeService.sendVerificationEmail(
+          req,
+          payload.email.toLowerCase(),
+          VerificationCodeTypeEnum.REGISTRATION,
+        );
 
-			console.log(`${process.env['APP_URL']}/sign-up?uid=${user.verificationLink}`);
+        const result = { ...newUser["dataValues"] };
 
-			response = user ?
-			
-				this._globalResponses.formatResponse('success', user.email, 'action_success', { input: 'User', action: 'created' }):
-				this._globalResponses.formatResponse('error', null, null);
-		}
-		else
-		{
-			response = this._globalResponses.formatResponse('error', null, 'invalid', { input: 'credentials' });
-		}
+        delete result.password; // Remove the 'password' property
 
-		return response;
-	}
+        response = this._globalResponses.formatResponse(
+          req,
+          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+          result,
+          "user_created",
+        );
+      }
+    }
 
-	/**
-	 * Find user 
-	 * @param {number} id
-	 * @returns {object}
-	 */
-	async find (id: number): Promise<object>
-	{
-		const user = await this.findOne(
-			{ id: id },
-			null,
-			['id']);
-
-		return user ?
-			this._globalResponses.formatResponse('success', user, 'action_success', { input: 'User', action: 'found' }):
-			this._globalResponses.formatResponse('error', null, 'not_found', { input: 'User' });
-	}
-
-	/**
-	 * Update user record
-	 * @param {number} id
-	 * @param {UserDTO} payload
-	 * @returns {object}
-	 */
-	async updateUser (id: number, payload: any): Promise<object>
-	{
-		let response = this._globalResponses.formatResponse('error', null, null);
-		const userExist = await this.findOne({ email: payload.email, id: { [Op.not]: id } });
-		if (userExist)
-		{
-			response = this._globalResponses.formatResponse('error', null, 'exists', { input: 'Email' });
-		}
-		else
-		{
-			const user = await this.update({ id: id }, payload);
-			response = user ?
-				this._globalResponses.formatResponse('success', user, 'action_success', { input: 'User', action: 'updated' }):
-				this._globalResponses.formatResponse('error', null, null);
-		}
-
-		return response;
-	}
-
-	/**
-	 * generate unique verification link
-	 * @returns {string}
-	 */
-	async generateVerificationLink (): Promise<string>
-	{
-		const uid = uuidv1();
-		const idExist = await this.findOne({ verificationLink: uid });
-		if (!idExist)
-		{
-			return uid;
-		}
-		else
-		{
-			return this.generateVerificationLink();
-		}
-	}
-
-	/**
-	 * Send forgot password email
-	 * @param {ForgetPasswordDTO} body
-	 * @returns {object}
-	 */
-	async forgotPassword (body: ForgetPasswordDTO): Promise<object>
-	{
-		const user = await this.findOne({ email: body.email });
-
-		if (user)
-		{
-			const resetPasswordCode = uuidv1();
-			await this.update({ email: body.email }, { resetPasswordCode });
-
-			const resetPasswordLink = `${process.env['APP_URL']}/reset-password/${resetPasswordCode}`;
-			console.log(resetPasswordLink);
-			return this._globalResponses.formatResponse('success', user, 'email_sent');
-		}
-		else
-		{
-			return this._globalResponses.formatResponse('error', null, 'not_found', { input: 'user' });
-		}
-	}
-
-	/**
-	 * Verify user reset password code 
-	 * @param {String} resetCode
-	 * @returns {object}
-	 */
-	async verifyResetPasswordCode (resetCode: string): Promise<object>
-	{
-
-		const user = await this.findOne({ resetPasswordCode: resetCode });
-		if (user)
-		{
-			this._globalResponses.formatResponse('success', user, 'action_success', { input: 'Code', action: 'verified' });
-		}
-		else
-		{
-			return this._globalResponses.formatResponse('error', null, 'expired', { input: 'The link' });
-		}
-	}
+    return response;
+  }
 }

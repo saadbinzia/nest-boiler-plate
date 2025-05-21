@@ -4,7 +4,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('tbl_users', {
-      id: { type: Sequelize.INTEGER, allowNull: false, autoIncrement: true, unique: true, primaryKey: true },
+      id: { type: Sequelize.BIGINT, allowNull: false, autoIncrement: true, unique: true, primaryKey: true },
 
       // The columns we want to create in database
       email: { type: Sequelize.STRING, unique: true, allowNull: false },
@@ -12,12 +12,11 @@ module.exports = {
       role: { type: Sequelize.STRING, allowNull: false },
       first_name: { type: Sequelize.STRING, },
       last_name: { type: Sequelize.STRING, },
-      status: { type: Sequelize.INTEGER, },
+      status: { type: Sequelize.BIGINT, },
       phone_number: { type: Sequelize.STRING, },
       registration_status: { type: Sequelize.STRING, },
       verification_link: { type: Sequelize.STRING, },
       profile_pic: { type: Sequelize.STRING, },
-      reset_password_code: { type: Sequelize.STRING, },
 
       /**
        * To Create logs
@@ -26,8 +25,8 @@ module.exports = {
        * createdAt => Contains the time when the record was created
        * updatedAt => Contains the time when the record was updated
        */
-      created_by: { type: Sequelize.INTEGER, },
-      updated_by: { type: Sequelize.INTEGER, },
+      created_by: { type: Sequelize.BIGINT, },
+      updated_by: { type: Sequelize.BIGINT, },
       createdAt: { type: Sequelize.DATE, defaultValue: Sequelize.literal('NOW()') },
       updatedAt: { type: Sequelize.DATE, defaultValue: Sequelize.literal('NOW()') }
     });

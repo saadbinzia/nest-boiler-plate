@@ -1,127 +1,112 @@
-import { Body, Controller, Get, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
-import GlobalResponses from 'src/core/config/GlobalResponses';
-import { DoesUserExist } from 'src/core/guards/doesUserExists.guard';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ForgetPasswordDTO } from './dto/forgetPassword.dto';
-import { UserDTO } from './dto/user.dto';
-import { VerificationLinkDTO } from './dto/verificationLink.dto';
-import { VerifyResetPasswordCodeDTO } from './dto/verifyResetPassword.dto';
-import { UserService } from './user.service';
+import { Body, Controller, Post, Req, Res } from "@nestjs/common";
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { Request, Response } from "express";
+import { GlobalEnums } from "src/core/config/globalEnums";
+import GlobalResponses from "src/core/config/GlobalResponses";
+import {
+  ErrorResponse,
+  SuccessResponse,
+  UnprocessableResponse,
+} from "src/core/config/interface/swaggerResponse.dto";
+import { UserDTO } from "./dto";
+import { UserService } from "./user.service";
 
-@Controller('users')
+@ApiTags("Clients / Simple User")
+@Controller("users")
 export class UsersController {
   constructor(
     private readonly _userService: UserService,
-    private readonly _globalResponses: GlobalResponses
-    ) { }
+    private readonly _globalResponses: GlobalResponses,
+  ) {}
 
   /**
-   * Create user verification link.
+   * Create user
+   * @description Create new user record.
    * @param {Response} res
-   * @param {VerificationLinkDTO} payload
-   * @returns {JSON}
+   * @param {UserDTO} body
+   * @returns {Promise<JSON>}
    */
-  @UseGuards(DoesUserExist)
-  @Post('create-verification-link')
-  async createVerificationLink(@Res() res, @Body() payload: VerificationLinkDTO) {
+  @Post("create-user")
+  @ApiOperation({
+    summary: "User Sign Up",
+    description: "User can sign up from app end.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Create Users Account",
+    type: SuccessResponse,
+  })
+  @ApiResponse({
+    status: 422,
+    description: "Unprocessable Entity",
+    type: UnprocessableResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Some kind of error",
+    type: ErrorResponse,
+  })
+  @ApiBody({
+    description: "Create User Account",
+    type: UserDTO,
+    examples: {
+      a: {
+        summary: "Sample that return success response",
+        value: {
+          email: "someuniqueemail",
+          firstName: "Saad",
+          lastName: "Bin Zia",
+          phoneNumber: "+923034197551",
+          password: "P@ss2word",
+          keepUserUpdated: true,
+          agreeTermsAndConditions: true,
+        },
+      },
+      b: {
+        summary: "Sample that return validation error",
+        value: {
+          email: "saadbinzia055",
+          firstName: "Saad",
+          lastName: "Bin Zia",
+          phoneNumber: "+923034197551",
+          password: "pass2word",
+          keepUserUpdated: true,
+          agreeTermsAndConditions: true,
+        },
+      },
+      c: {
+        summary: "Sample with referral user and preferred language",
+        value: {
+          email: "saadbinzia055@gmail.com",
+          firstName: "Saad",
+          lastName: "Bin Zia",
+          phoneNumber: "+923034197551",
+          password: "P@ss2word",
+          keepUserUpdated: true,
+          agreeTermsAndConditions: true,
+          referralUser: "username",
+          preferredLanguage: "en",
+        },
+      },
+    },
+  })
+  async createUser(
+    @Res() res: Response,
+    @Req() req: Request,
+    @Body() body: UserDTO,
+  ): Promise<object> {
     try {
-      return res.json(await this._userService.createVerificationLink(payload));
+      const response = await this._userService.createUser(req, body);
+      return res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      return res.json(this._globalResponses.formatResponse('error', null, null))
-    }
-  }
-
-  /**
-   * Find users on given condition.
-   * @param {Response} res
-   * @param {Object} payload
-   * @returns {JSON}
-   */
-  @Post('')
-  async findAll(@Res() res, @Body() payload) {
-    try {
-
-      return res.json(await this._userService.findAll(payload));
-
-    } catch (error) {
-      console.error(error);
-      return res.json(this._globalResponses.formatResponse('error', null, null))
-    }
-  }
-
-  /**
-   * Find user by id.
-   * @param {Response} res
-   * @param {Request} req
-   * @returns {JSON}
-   */
-  @UseGuards(JwtAuthGuard)
-  @Get('find')
-  async find(@Res() res, @Req() req) {
-    try {
-
-      // Need to check this line (req.user.id) : un-tested
-      return res.json(await this._userService.find(req.user.id))
-
-    } catch (error) {
-      console.error(error);
-      return res.json(this._globalResponses.formatResponse('error', null, null))
-    }
-  }
-
-  /**
-   * Update user record.
-   * @param {Response} res
-   * @param {UserDTO} payload
-   * @param {Object} param
-   * @returns {JSON}
-   */
-  @Put('update/:id')
-  async updateUser(@Res() res, @Body() payload: UserDTO, @Param() param) {
-    try {
-
-      return res.json(await this._userService.updateUser(param.id, payload))
-
-    } catch (error) {
-      console.error(error);
-      return res.json(this._globalResponses.formatResponse('error', null, null))
-    }
-  }
-
-  /**
-   * Used to get reset password link.
-   * @param {Request} res
-   * @param {ForgetPasswordDTO} body
-   * @returns {JSON}
-   */
-  @Post('forgot-password')
-  async forgotPassword(@Res() res, @Body() body: ForgetPasswordDTO) {
-    try {
-
-      return res.json(await this._userService.forgotPassword(body))
-
-    } catch (error) {
-      console.error(error);
-      return res.json(this._globalResponses.formatResponse('error', null, null))
-    }
-  }
-
-  /**
-   * Verify user reset password code.
-   * @param {Response} res
-   * @param {VerifyResetPasswordCodeDTO} param
-   * @returns {JSON}
-   */
-  @Get('verify-reset-password-code/:resetCode')
-  async verifyResetPasswordCode(@Res() res: any, @Param() param: VerifyResetPasswordCodeDTO) {
-    try {
-
-      return res.json(await this._userService.verifyResetPasswordCode(param.resetCode))
-
-    } catch (error) {
-      console.error(error);
-      return res.json(this._globalResponses.formatResponse('error', null, null))
+      const response = this._globalResponses.formatResponse(
+        req,
+        GlobalEnums.RESPONSE_STATUSES.ERROR,
+        null,
+        null,
+      );
+      return res.status(response.statusCode).json(response);
     }
   }
 }

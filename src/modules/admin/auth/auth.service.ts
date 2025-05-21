@@ -1,67 +1,121 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { UserService } from '../user/user.service';
+import { forwardRef, Inject, Injectable, Req } from "@nestjs/common";
+import { Request } from "express";
+import { GlobalEnums } from "src/core/config/globalEnums";
+import GlobalResponses from "src/core/config/GlobalResponses";
+import { ApiResponse } from "src/core/config/interface/globalResponses.interface";
+import { Attachment } from "src/entities";
+import { SharedAuthService } from "src/modules/shared/auth/auth.service";
+import { UserService } from "../user/user.service";
+import { AuthDto } from "./dto/auth.dto";
 
 @Injectable()
 export class AuthService {
-	constructor(
-		@Inject(forwardRef(() => UserService))
-		private readonly _userService: UserService,
-		private readonly _jwtService: JwtService,
-	) { }
+  constructor(
+    @Inject(forwardRef(() => UserService))
+    private readonly _userService: UserService,
+    @Inject(forwardRef(() => SharedAuthService))
+    private readonly _sharedAuthService: SharedAuthService,
+    private readonly _globalResponses: GlobalResponses,
+  ) {}
 
-	/**
-	 * Login admin on admin panel
-	 * @param payload any
-	 * @returns object
-	 */
-	public async login(payload: any) {
-		return await this.validateUser(payload.username, payload.password);
-	}
+  /**
+   * Login
+   * @description User can login from app end.
+   * @param {AuthDto} payload
+   * @param {Request} request
+   * @returns {Promise<ApiResponse>}
+   */
+  public async login(
+    payload: AuthDto,
+    @Req() request: Request,
+  ): Promise<ApiResponse> {
+    return await this.validateUser(payload, request);
+  }
 
-	/**
-	 * Validate credentials and generate token
-	 * @param email string
-	 * @param pass string
-	 * @returns object
-	 */
-	async validateUser(email: string, pass: string) {
-		try {
-			const user = await this._userService.findOne({ email: email, role: 'admin' });
-			if (!user) {
-				return { status: 'error', message: "User not found! please try again" };
-			}
-			const match = await this.comparePassword(pass, user.password);
-			if (!match) {
-				return { status: 'error', message: "Invalid credentials" };
-			}
-			const token = await this.generateToken({ id: user.id, email: user.email });
-			const { password, ...result } = user['dataValues'];
-			return { status: 'success', data: { token: token, user: result } };
-		} catch (error) {
-			return { status: 'error', data: error?.response?.data || error?.stack };
-		}
-	}
+  /**
+   * Validate user
+   * @description Validate user login credentials and generate token.
+   * @param {AuthDto} payload
+   * @param {Request} request
+   * @returns {Promise<ApiResponse>}
+   */
+  async validateUser(
+    payload: AuthDto,
+    request?: Request,
+  ): Promise<ApiResponse> {
+    try {
+      const user = await this._userService.findOne(
+        {
+          email: payload.email.toLowerCase(),
+          role: GlobalEnums.USER_ROLES.SUPER_ADMIN,
+        },
+        {
+          model: Attachment,
+          as: "profileImage",
+          attributes: ["filePath", "fileUniqueName"],
+        },
+        [
+          "firstName",
+          "lastName",
+          "password",
+          "id",
+          "email",
+          "registrationStatus",
+          "role",
+          "preferredLanguage",
+        ],
+      );
 
-	/**
-	 * Compare entered and db password(encrypted) using bcrypt
-	 * @param enteredPassword string
-	 * @param passwordInDatabase string
-	 * @returns boolean
-	 */
-	private async comparePassword(enteredPassword: string, passwordInDatabase: string) {
-		const match = await bcrypt.compare(enteredPassword, passwordInDatabase);
-		return match;
-	}
+      if (!user) {
+        return this._globalResponses.formatResponse(
+          request,
+          GlobalEnums.RESPONSE_STATUSES.ERROR,
+          null,
+          "invalid_user_credentials",
+        );
+      }
 
-	/**
-	 * Generate JWT token
-	 * @param user any
-	 * @returns string
-	 */
-	async generateToken(user: any) {
-		const token = await this._jwtService.signAsync(user);
-		return token;
-	}
+      const match = await this._sharedAuthService.comparePassword(
+        payload.password,
+        user?.password ?? "",
+      );
+
+      if (!match) {
+        return this._globalResponses.formatResponse(
+          request,
+          GlobalEnums.RESPONSE_STATUSES.ERROR,
+          null,
+          "invalid_user_credentials",
+        );
+      }
+
+      const result = user["dataValues"];
+      delete result.password;
+
+      const token = await this._sharedAuthService.createToken(
+        request,
+        user.id,
+        user.email,
+        user.role,
+        payload.rememberMe,
+        user.preferredLanguage,
+      );
+
+      return this._globalResponses.formatResponse(
+        request,
+        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+        { token: token, user: result },
+        "user_login",
+      );
+    } catch (error) {
+      // TODO:high: Pass error to formatResponse function.
+      console.error(error);
+      return this._globalResponses.formatResponse(
+        request,
+        GlobalEnums.RESPONSE_STATUSES.ERROR,
+        null,
+        null,
+      );
+    }
+  }
 }

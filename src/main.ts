@@ -1,45 +1,59 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ValidateInputPipe } from './core/pipes/validate.pipe';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+import { ValidateInputPipe } from "./core/pipes/validate.pipe";
 
 /**
  *  Main function from where the app starts
  */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidateInputPipe);
+
+  // Setup Swagger
+  const config = new DocumentBuilder()
+    .setTitle("Ahora Point Back End")
+    .setDescription(
+      "This is the documentation of all the APis used in the ProjectNameHere system",
+    )
+    .setVersion("1.0")
+    .addTag(process.env["NODE_ENV"].toUpperCase())
+    .addBearerAuth(
+      { type: "http", scheme: "bearer", bearerFormat: "JWT" },
+      "access-token",
+    )
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api-docs", app, document);
+
+  // Global validation pipe
+  app.useGlobalPipes(new ValidateInputPipe());
+
+  // CORS configuration
   app.enableCors({
     allowedHeaders: "*",
     origin: (origin, callback) => {
-      const allowedOrigins = process.env['CORS'].split(',');
+      const allowedOrigins = process.env["CORS"]
+        .split(",")
+        .map((origin) => origin.trim());
+      if (allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
 
-      const allowedSubdomains = process.env['SUBDOMAIN_CORS'].split(',');
       if (!origin) {
         return callback(null, true);
       }
 
-      let isAllowed:any = allowedOrigins.find(allowedOrigin => origin === allowedOrigin);
-      
-      if(isAllowed){
-        callback(null, true);
-        return ;
-      }
-
-      const requestDomain = new URL(origin).host;
-
-      // TODO: We might need to handle the case for http and https for subdomains
-      isAllowed = allowedSubdomains.some(allowedOrigin =>
-        requestDomain.endsWith(allowedOrigin.split('://')[1])
+      const isAllowed: any = allowedOrigins.find(
+        (allowedOrigin) => origin === allowedOrigin,
       );
 
-      if(isAllowed){
-        callback(null, true);
+      if (isAllowed) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
       }
-      else{
-        callback(new Error('Not allowed by CORS'));
-      }
-    }
+    },
   });
-  await app.listen(process.env['PORT']);
+  await app.listen(process.env["PORT"]);
 }
 bootstrap();

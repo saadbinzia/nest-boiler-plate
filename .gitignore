@@ -95,3 +95,6 @@ lerna-debug.log*
 
 src/database/config/config.json
 package-lock.json
+
+uploads
+reports
