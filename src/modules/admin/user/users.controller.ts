@@ -30,7 +30,7 @@ import {
   ErrorResponse,
   SuccessResponse,
   unAuthorizedResponse,
-  UnprocessableResponse
+  UnprocessableResponse,
 } from "src/core/config/interface/swaggerResponse.dto";
 import { Roles } from "src/core/decorators/role-decorator";
 import { RolesGuard } from "src/core/guards/checkRole.guard";

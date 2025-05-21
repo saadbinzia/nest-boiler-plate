@@ -17,8 +17,12 @@ const entities = [
 ];
 
 export {
-  Attachment, Notification, SocialLogin, SystemSetting, User,
+  Attachment,
+  Notification,
+  SocialLogin,
+  SystemSetting,
+  User,
   UserSession,
-  UserVerificationCode
+  UserVerificationCode,
 };
 export default entities;

@@ -6,9 +6,7 @@ import { ApiResponse } from "src/core/config/interface/globalResponses.interface
 
 @Injectable()
 export class CronService {
-  constructor(
-    private readonly _globalResponses: GlobalResponses,
-  ) {}
+  constructor(private readonly _globalResponses: GlobalResponses) {}
 
   async hourlyCron(req: Request): Promise<ApiResponse> {
     try {

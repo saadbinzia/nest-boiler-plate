@@ -46,7 +46,6 @@ const englishTranslations = {
     // User Profile Settings
     image_uploaded: "Image uploaded successfully.",
     image_deleted: "Image deleted successfully.",
-
   },
   error: {
     // General messages
@@ -99,7 +98,6 @@ const englishTranslations = {
     attachment_not_found: "Attachment not found.",
 
     one_or_more_email_invalid: "One or more email is invalid.",
-
   },
   unVerifiedUser: {
     user_not_verified: "User is not verified.",

@@ -184,9 +184,7 @@ export class SocialLoginService extends BaseService {
     }
   }
 
-  async validateRequest(
-    payload: SocialSignUpDTO,
-  ): Promise<boolean> {
+  async validateRequest(payload: SocialSignUpDTO): Promise<boolean> {
     console.log(payload);
 
     return true;
