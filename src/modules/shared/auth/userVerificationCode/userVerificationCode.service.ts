@@ -1,25 +1,29 @@
 import { Inject, Injectable, forwardRef } from "@nestjs/common";
-import { Op } from "sequelize";
-import { BaseService } from "src/core/base/base.service";
-import { GlobalEnums } from "src/core/config/globalEnums";
-import GlobalResponses from "src/core/config/GlobalResponses";
-import { User, UserVerificationCode } from "src/entities";
-import { MailService } from "src/modules/mail/mail.service";
-import { UserService } from "../../user/user.service";
-import {
-  VerificationCodeStatusEnum,
-  VerificationCodeTypeEnum,
-} from "./interface/userVerificationCode.interface";
 import { Request } from "express";
-import { v1 as uuidv1 } from "uuid";
+import { BaseService } from "src/core/base/base.service";
+import { GlobalEnums, TVerificationCode } from "src/core/config/globalEnums";
+import GlobalResponses from "src/core/config/GlobalResponses";
 import { ApiResponse } from "src/core/config/interface/globalResponses.interface";
 import { SystemSettingService } from "src/core/config/systemSetting.service";
+import { UserVerificationCode } from "src/entities";
+
+import { MailService } from "src/modules/mail/mail.service";
+import { UserService } from "../../user/user.service";
+import { v1 as uuidv1 } from "uuid";
+
+const {
+  VERIFICATION_CODE_TYPE,
+  VERIFICATION_CODE_STATUS,
+  SYSTEM_SETTING_KEYS,
+  RESPONSE_STATUSES,
+} = GlobalEnums;
 
 /**
- * User Verification Code Service
+ * Service for handling user verification codes
+ * @extends BaseService<UserVerificationCode>
  */
 @Injectable()
-export class UserVerificationCodeService extends BaseService {
+export class UserVerificationCodeService extends BaseService<UserVerificationCode> {
   constructor(
     @Inject(forwardRef(() => MailService))
     private _mailService: MailService,
@@ -27,86 +31,63 @@ export class UserVerificationCodeService extends BaseService {
     private _userService: UserService,
     @Inject(forwardRef(() => SystemSettingService))
     private _systemSettingService: SystemSettingService,
-
     private _globalResponses: GlobalResponses,
   ) {
     super(UserVerificationCode);
   }
 
   /**
-   * Create Verification Code
-   * @description This function will create a new verification code for specific type and expire all previously added codes for that specific type.
-   * @param {VerificationCodeStatusEnum} codeStatus
-   * @param {VerificationCodeTypeEnum} type
-   * @param {Request} req
-   * @param {string} code
-   * @param {number} userId
-   * @returns {Promise<object>}
+   * Create a new verification code for a user
+   * @param {Request} req - The request object
+   * @param {number} userId - The ID of the user
+   * @param {TVerificationCode} type - The type of verification code
+   * @returns {Promise<UserVerificationCode>} Promise resolving to the created verification code
    */
-  async createVerificationCode(
+  async createVerificationCodeByUser(
     req: Request,
     userId: number,
-    code: string,
-    type: VerificationCodeTypeEnum,
-    uuid?: string,
-  ): Promise<object> {
-    const payload = {
-      publicIp:
-        req.headers["x-forwarded-for"] || req?.connection?.remoteAddress || "",
-      browser: req?.headers["sec-ch-ua"] ? req.headers["sec-ch-ua"] : "",
-      operatingSystem: req?.headers["sec-ch-ua-platform"]
-        ? req.headers["sec-ch-ua-platform"]
-        : "",
-    };
+    type: TVerificationCode,
+  ): Promise<UserVerificationCode> {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
 
-    const alreadyExists = await this.findAll({
-      userId: userId,
-      type: type,
-      codeStatus: {
-        [Op.not]: VerificationCodeStatusEnum.EXPIRED,
-      },
-    });
-
-    if (alreadyExists.length > 0) {
-      const promiseArr = [];
-      alreadyExists.forEach((item) => {
-        promiseArr.push(
-          this.updateById(item.id, {
-            codeStatus: VerificationCodeStatusEnum.EXPIRED,
-          }),
-        );
-      });
-
-      promiseArr.push(
-        this.create({
-          userId,
-          code,
-          codeStatus: VerificationCodeStatusEnum.SENT,
-          type,
-          uuid,
-          ...payload,
-        }),
-      );
-      return await Promise.all(promiseArr);
-    } else {
-      return await this.create({
+    // Expire any existing verification codes for this user and type
+    await this.update(
+      req,
+      {
         userId,
-        code,
-        codeStatus: VerificationCodeStatusEnum.SENT,
         type,
-        uuid,
-        ...payload,
-      });
-    }
+        status: VERIFICATION_CODE_STATUS.PENDING,
+      },
+      { status: VERIFICATION_CODE_STATUS.EXPIRED },
+    );
+
+    // Create a new verification code
+    return await this.create(req, {
+      code: await this.generateUniqueCode(req, type),
+      uuid: await this.generateUUId(req),
+      type,
+      userId,
+      status: VERIFICATION_CODE_STATUS.PENDING,
+      expiresAt,
+      verifiedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      // The following fields are required by the model but will be set by Sequelize
+      user: undefined as any,
+    } as UserVerificationCode);
   }
 
   /**
    * Generate Unique Code
    * @description This function can be used to generate a 4 digit random code that is unique for its specific code type
-   * @param {VerificationCodeTypeEnum} type
-   * @returns {Promise<string>}
+   * @param {VerificationCodeType} type - The type of verification code
+   * @returns {Promise<string>} A unique verification code
    */
-  async generateUniqueCode(type: VerificationCodeTypeEnum): Promise<string> {
+  async generateUniqueCode(
+    req: Request,
+    type: TVerificationCode,
+  ): Promise<string> {
     try {
       let code: string;
       let isUnique = false;
@@ -114,7 +95,7 @@ export class UserVerificationCodeService extends BaseService {
       // Generate a unique 5-digit code
       while (!isUnique) {
         code = this.generateRandomCode();
-        const existingEntity = await this.findOne({
+        const existingEntity = await this.findOne(req, {
           code,
           type,
         });
@@ -153,7 +134,7 @@ export class UserVerificationCodeService extends BaseService {
    */
   async generateUUId(req: Request): Promise<string> {
     const uid = uuidv1();
-    const idExist = await this.findOne({ uuid: uid });
+    const idExist = await this.findOne(req, { uuid: uid });
     if (!idExist) {
       return uid;
     } else {
@@ -165,45 +146,41 @@ export class UserVerificationCodeService extends BaseService {
    * Send Verification Email
    * @description This function sends a verification email to the user with the code and type
    * @param {string} email
-   * @param {VerificationCodeTypeEnum} type
+   * @param {TVerificationCode} type
    * @returns {Promise<ApiResponse>}
    */
-  async sendVerificationEmail(
+  async createVerificationCodeByEmail(
     req: Request,
     email: string,
-    type: VerificationCodeTypeEnum,
+    type: TVerificationCode,
   ): Promise<ApiResponse> {
-    const user = await this._userService.findOne({
+    const user = await this._userService.findOne(req, {
       email: email.toLowerCase(),
     });
 
     const verificationCodeExpiry =
       await this._systemSettingService.getNumberValueByKey(
-        GlobalEnums.SYSTEM_SETTING_KEYS.VERIFICATION_CODE_EXPIRY,
+        req,
+        SYSTEM_SETTING_KEYS.VERIFICATION_CODE_EXPIRY,
       );
 
     if (user) {
-      const code = await this.generateUniqueCode(type);
-      const uuid = await this.generateUUId(req);
-
-      await this.createVerificationCode(
+      const codeRecord = await this.createVerificationCodeByUser(
         req,
         user.id,
-        code.toString(),
         type,
-        uuid,
       );
 
-      if (type === VerificationCodeTypeEnum.FORGET_PASSWORD) {
+      if (type === VERIFICATION_CODE_TYPE.PASSWORD_RESET) {
         this._mailService.sendEmail(
-          "forget-password",
           email,
           "Reset your password",
+          "forget-password",
           {
             username: user.firstName,
             email: user.email,
-            code: code,
-            resetLink: `${process.env["APP_URL"]}/auth/reset-password?uuid=${uuid}`,
+            code: codeRecord.code,
+            resetLink: `${process.env["APP_URL"]}/auth/reset-password?uuid=${codeRecord.uuid}`,
             logoImage: `${process.env["API_URL"]}/static/email/logo.png`,
             expiry: verificationCodeExpiry,
             supportMail: process.env["MAIL_SUPPORT"],
@@ -211,14 +188,14 @@ export class UserVerificationCodeService extends BaseService {
         );
       } else {
         this._mailService.sendEmail(
-          "registration-code",
           email,
           "Your verification code",
+          "registration-code",
           {
             username: user.firstName,
             email: user.email,
-            code: code,
-            resetLink: `${process.env["APP_URL"]}/verify-email/success?uuid=${uuid}`,
+            code: codeRecord.code,
+            resetLink: `${process.env["APP_URL"]}/verify-email/success?uuid=${codeRecord.uuid}`,
             logoImage: `${process.env["API_URL"]}/static/email/logo.png`,
             expiry: verificationCodeExpiry,
             supportMail: process.env["MAIL_SUPPORT"],
@@ -228,18 +205,14 @@ export class UserVerificationCodeService extends BaseService {
 
       return this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+        RESPONSE_STATUSES.SUCCESS,
         null,
         "email_sent",
       );
     }
-
-    return this._globalResponses.formatResponse(
-      req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      "user_not_found",
-    );
+    const error = new Error("user_not_found");
+    error.name = "NotFoundError";
+    throw error;
   }
 
   /**
@@ -254,59 +227,56 @@ export class UserVerificationCodeService extends BaseService {
     req: Request,
     email: string,
     code: string,
-    type: VerificationCodeTypeEnum,
+    type: TVerificationCode,
   ): Promise<ApiResponse> {
-    const codeRecord = await this.findOne({ code, type }, [
-      {
-        model: User,
-        where: {
-          email: email.toLowerCase(),
-        },
-      },
-    ]);
+    const codeRecord = await this.findOne(req, { code, type });
 
     if (codeRecord) {
       const verificationCodeExpiry =
         await this._systemSettingService.getNumberValueByKey(
-          GlobalEnums.SYSTEM_SETTING_KEYS.VERIFICATION_CODE_EXPIRY,
+          req,
+          SYSTEM_SETTING_KEYS.VERIFICATION_CODE_EXPIRY,
         );
 
       const beforeExpiry = new Date(
         new Date().getTime() - verificationCodeExpiry * 60 * 1000,
       );
-      if (
-        codeRecord.codeStatus !== VerificationCodeStatusEnum.SENT ||
-        codeRecord.createdAt <= beforeExpiry
-      ) {
-        await this.updateById(codeRecord.id, {
-          codeStatus: VerificationCodeStatusEnum.EXPIRED,
-        });
+      if (codeRecord.status === VERIFICATION_CODE_STATUS.PENDING) {
+        if (codeRecord.createdAt <= beforeExpiry) {
+          await this.update(
+            req,
+            { id: (codeRecord as any).id },
+            { status: VERIFICATION_CODE_STATUS.EXPIRED },
+          );
+          const error = new Error("verification_code_expired");
+          error.name = "BadRequestError";
+          throw error;
+        }
+
+        // Update verification code status to VALIDATED
+        await this.update(
+          req,
+          { id: (codeRecord as any).id },
+          { status: VERIFICATION_CODE_STATUS.VERIFIED },
+        );
         return this._globalResponses.formatResponse(
           req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "verification_code_expired",
+          RESPONSE_STATUSES.SUCCESS,
+          {},
+          "auth_code_verified",
         );
+      } else {
+        await this.updateById(req, codeRecord.id, {
+          status: VERIFICATION_CODE_STATUS.EXPIRED,
+        });
+        const error = new Error("verification_code_expired");
+        error.name = "BadRequestError";
+        throw error;
       }
-
-      await this.updateOne(
-        { code: code, codeStatus: VerificationCodeStatusEnum.SENT },
-        { codeStatus: VerificationCodeStatusEnum.VALIDATED },
-      );
-
-      return this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-        {},
-        "auth_code_verified",
-      );
     } else {
-      return this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "invalid_verification_code",
-      );
+      const error = new Error("invalid_verification_code");
+      error.name = "BadRequestError";
+      throw error;
     }
   }
 }

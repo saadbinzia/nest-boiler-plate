@@ -4,9 +4,13 @@ import { GlobalEnums } from "src/core/config/globalEnums";
 import GlobalResponses from "src/core/config/GlobalResponses";
 import { ApiResponse } from "src/core/config/interface/globalResponses.interface";
 
+const { RESPONSE_STATUSES } = GlobalEnums;
+
 @Injectable()
 export class CronService {
-  constructor(private readonly _globalResponses: GlobalResponses) {}
+  constructor(
+    private readonly _globalResponses: GlobalResponses,
+  ) {}
 
   async hourlyCron(req: Request): Promise<ApiResponse> {
     try {
@@ -17,7 +21,7 @@ export class CronService {
 
     return this._globalResponses.formatResponse(
       req,
-      GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+      RESPONSE_STATUSES.SUCCESS,
       null,
       null,
     );

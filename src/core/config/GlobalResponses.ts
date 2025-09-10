@@ -7,7 +7,10 @@ import {
 import { AuthenticatedRequest } from "./interface/request.interface";
 import englishTranslations from "./translations/english";
 import spanishTranslations from "./translations/spanish";
+import { GlobalEnums } from "./globalEnums";
+import { HttpStatus } from "@nestjs/common";
 
+const { RESPONSE_STATUSES } = GlobalEnums;
 /**
  * GlobalResponses class to handle formatting API responses with multi-language support.
  */
@@ -37,7 +40,6 @@ export default class GlobalResponses {
    * @param {string} status - The status of the response ('success' or 'error').
    * @param {any | null | undefined} data - The data we need to pass in response(optional).
    * @param {string | null | undefined} messageId - The ID of the message to retrieve (optional).
-   * @param {ReplaceValues} replaceValues - Values to replace in the response message (optional).
    * @returns {ApiResponse} The formatted API response.
    */
   formatResponse(
@@ -45,43 +47,69 @@ export default class GlobalResponses {
     status: string,
     data?: any,
     messageId?: string | null,
-    replaceValues: ReplaceValues = {},
   ): ApiResponse {
     // Extract language from headers
-    const language = (request.headers?.language as string) || "en";
+    const language = (request?.headers?.language as string) || "en";
 
     if (!(status in this.defaultStatuses)) {
       status = "error"; // Default to error status if invalid status provided
     }
 
-    const statusCode =
-      status === "success" ? 200 : status === "unVerifiedUser" ? 403 : 400;
+    if (data && status !== RESPONSE_STATUSES.SUCCESS) {
+      console.log("Error => ", data);
+    }
+
+    let statusCode = HttpStatus.OK;
+    if (status === RESPONSE_STATUSES.UN_VERIFIED_USER) {
+      statusCode = HttpStatus.FORBIDDEN;
+    }
+    if (status === RESPONSE_STATUSES.ERROR && data) {
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      // Handle specific error cases
+
+      if (data.name) {
+        if (data?.name === "ConflictError") {
+          statusCode = HttpStatus.CONFLICT;
+        } else if (data?.name === "ValidationError") {
+          statusCode = HttpStatus.UNPROCESSABLE_ENTITY;
+        } else if (data?.name === "NotFoundError") {
+          statusCode = HttpStatus.NOT_FOUND;
+        } else if (data?.name === "BadRequestError") {
+          statusCode = HttpStatus.BAD_REQUEST;
+        } else if (data?.name === "UnavailableError") {
+          statusCode = HttpStatus.SERVICE_UNAVAILABLE;
+        } else {
+          statusCode = data?.status;
+        }
+      }
+
+      messageId = data?.message;
+    }
+
+    // console.log(status);
 
     const response: ApiResponse = {
       statusCode,
-      status: this.defaultStatuses[status] === "success" ? "success" : "error",
+      status,
       data: data ? data : null,
-      message: [""],
+      message: "",
     };
 
-    let message: string | undefined;
-
     if (messageId) {
-      message =
+      response.message =
         this.getMessageById(status, messageId, language) ||
         this.getMessage(status, messageId, language);
     } else {
-      message = this.getMessage(status, "default", language);
+      response.message = this.getMessage(status, "default", language);
     }
 
-    if (!message) {
-      message =
-        status === "success"
+    if (!response.message) {
+      response.message =
+        status === RESPONSE_STATUSES.SUCCESS
           ? "Operation completed successfully."
           : "Oops! Something went wrong. Please try again later.";
     }
 
-    response.message = [this.replaceMessageValues(message, replaceValues)];
     return response;
   }
 

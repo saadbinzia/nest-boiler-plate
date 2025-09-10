@@ -1,122 +1,124 @@
-import { forwardRef, Inject, Injectable } from "@nestjs/common";
-import * as bcrypt from "bcrypt";
-import { Request } from "express";
+import { Injectable } from "@nestjs/common";
 import { BaseService } from "src/core/base/base.service";
-import { GlobalEnums } from "src/core/config/globalEnums";
-import GlobalResponses from "src/core/config/GlobalResponses";
-import { ApiResponse } from "src/core/config/interface/globalResponses.interface";
 import { User } from "src/entities";
-import { VerificationCodeTypeEnum } from "src/modules/shared/auth/userVerificationCode/interface/userVerificationCode.interface";
-import { UserVerificationCodeService } from "src/modules/shared/auth/userVerificationCode/userVerificationCode.service";
-import { UserDTO } from "./dto";
+import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
+import { Request } from "express";
 
+/**
+ * User Service
+ * @description Handles all user-related business logic
+ */
 @Injectable()
-export class UserService extends BaseService {
+export class UserService extends BaseService<User> {
   constructor(
-    @Inject(forwardRef(() => UserVerificationCodeService))
-    private _userVerificationCodeService: UserVerificationCodeService,
-    private _globalResponses: GlobalResponses,
   ) {
     super(User);
   }
 
   /**
-   * Find by email
-   * @description Find user by email.
-   * @param {Request} req
-   * @param {String} email
-   * @returns {Promise<object>}
+   * Find user by email
+   * @param {string} email - The email to search for
+   * @returns {Promise<User | null>} Promise resolving to the user or null if not found
    */
-  async findByEmail(email: string): Promise<object> {
-    return this.findOne({ email: email.toLowerCase() });
+  async findByEmail(
+    req: Request | AuthenticatedRequest,
+    email: string,
+  ): Promise<User | null> {
+    return this.findOne(req, { email: email.toLowerCase() });
   }
 
-  /**
-   * Generate username
-   * @description generate unique username.
-   * @param {String} name
-   * @returns {Promise<string>}
-   */
-  async generateUsername(name: string): Promise<string> {
-    const uid = name + Number(new Date());
-    const idExist = await this.findOne({ username: uid });
-    if (!idExist) {
-      return uid;
-    } else {
-      return this.generateUsername(uid);
-    }
-  }
+  // /**
+  //  * Create a new user
+  //  * @param {CreateUserDto} createUserDto - User data transfer object
+  //  * @returns {Promise<User>} The created user
+  //  * @throws {Error} If user creation fails or validation error occurs
+  //  */
+  // async createNewUser(
+  //   req: Request | AuthenticatedRequest,
+  //   createUserDto: CreateUserDto,
+  // ): Promise<User> {
+  //   try {
+  //     // Check if user with email already exists
+  //     const userExists = await this.findByEmail(req, createUserDto.email);
+  //     if (
+  //       userExists &&
+  //       userExists.registrationStatus !== REGISTRATION_STATUSES.PENDING
+  //     ) {
+  //       const error = new Error("email_already_exists");
+  //       error.name = "ConflictError";
+  //       throw error;
+  //     }
 
-  /**
-   * Create user
-   * @description Create new user record.
-   * @param {UserDTO} payload
-   * @return {Promise<ApiResponse>}
-   */
-  async createUser(req: Request, payload: UserDTO): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
-      req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
-    );
+  //     // Hash password
+  //     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-    const userExists = await this.findByEmail(payload.email);
-    const phoneNumberExists = await this.findOne({
-      phoneNumber: payload.phoneNumber,
-    });
+  //     if (
+  //       userExists &&
+  //       userExists.registrationStatus === REGISTRATION_STATUSES.PENDING
+  //     ) {
+  //       // Update existing pending user
+  //       const [updatedCount, [updatedUser]] = await this.update(
+  //         req,
+  //         { id: userExists.id },
+  //         {
+  //           ...createUserDto,
+  //           email: createUserDto?.email?.toLowerCase(),
+  //           password: hashedPassword,
+  //           role: USER_ROLES.USER,
+  //           status: ACTIVE_STATUSES.ACTIVE,
+  //           registrationStatus: REGISTRATION_STATUSES.PENDING,
+  //         } as any,
+  //       );
 
-    // Check if user exists against this email then notify user.
-    if (userExists) {
-      response = this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "email_already_exists",
-      );
-    } else if (phoneNumberExists) {
-      response = this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "phone_number_already_exists",
-      );
-    } else {
-      let hashPass = null;
+  //       if (!updatedCount) {
+  //         throw new Error("Failed to update pending user");
+  //       }
 
-      if (payload.password) {
-        hashPass = await bcrypt.hash(payload.password, 10);
-      }
-      const newUser = await this.create({
-        ...payload,
-        password: hashPass,
-        role: GlobalEnums.USER_ROLES.USER,
-        status: GlobalEnums.ACTIVE_STATUSES.ACTIVE,
-        username: payload.phoneNumber,
-        registrationStatus:
-          GlobalEnums.REGISTRATION_STATUSES.REGISTRATION_STARTED,
-      });
+  //       // Clear password from the returned user object
+  //       const userJson = updatedUser.get({ plain: true });
+  //       delete userJson.password;
 
-      if (newUser) {
-        await this._userVerificationCodeService.sendVerificationEmail(
-          req,
-          payload.email.toLowerCase(),
-          VerificationCodeTypeEnum.REGISTRATION,
-        );
+  //       await this._userVerificationCodeService.createVerificationCodeByEmail(
+  //         req,
+  //         userJson.email,
+  //         VERIFICATION_CODE_TYPE.REGISTRATION,
+  //       );
+  //       return userJson as User;
+  //     } else {
+  //       // Create user
+  //       const newUser = await this.create(req, {
+  //         ...createUserDto,
+  //         email: createUserDto?.email?.toLowerCase(),
+  //         password: hashedPassword,
+  //         role: USER_ROLES.USER,
+  //         status: ACTIVE_STATUSES.ACTIVE,
+  //         registrationStatus: REGISTRATION_STATUSES.PENDING,
+  //       } as any);
 
-        const result = { ...newUser["dataValues"] };
+  //       if (!newUser) {
+  //         throw new Error("Failed to create user");
+  //       }
 
-        delete result.password; // Remove the 'password' property
+  //       // Clear password from the returned user object
+  //       const userJson = newUser.get({ plain: true });
+  //       delete userJson.password;
 
-        response = this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          result,
-          "user_created",
-        );
-      }
-    }
-
-    return response;
-  }
+  //       await this._userVerificationCodeService.createVerificationCodeByEmail(
+  //         req,
+  //         userJson.email?.toLowerCase(),
+  //         VERIFICATION_CODE_TYPE.REGISTRATION,
+  //       );
+  //       return userJson as User;
+  //     }
+  //   } catch (error) {
+  //     // Re-throw the error with a name that can be checked in the controller
+  //     if (
+  //       error.name === "SequelizeValidationError" ||
+  //       error.name === "SequelizeUniqueConstraintError"
+  //     ) {
+  //       error.name = "ValidationError";
+  //     }
+  //     throw error;
+  //   }
+  // }
 }

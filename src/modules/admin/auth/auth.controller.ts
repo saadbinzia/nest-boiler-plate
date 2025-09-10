@@ -59,8 +59,8 @@ export class AuthController {
     @Body() body: AuthDto,
     @Req() req: Request,
     @Res() res,
-  ): Promise<object> {
+  ): Promise<void> {
     const response = await this._authService.login(body, req);
-    return res.status(response.statusCode).json(response);
+    res.status(response.statusCode).json(response);
   }
 }

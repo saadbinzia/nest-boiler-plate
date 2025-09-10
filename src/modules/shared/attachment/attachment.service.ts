@@ -7,15 +7,18 @@ import { Attachment } from "src/entities";
 import { v1 as uuidv1 } from "uuid";
 import { GlobalEnums } from "src/core/config/globalEnums";
 import { Request } from "express";
+import { S3Service } from "../s3/s3.service";
 
+const { RESPONSE_STATUSES } = GlobalEnums;
 @Injectable()
-export class AttachmentService extends BaseService {
+export class AttachmentService extends BaseService<Attachment> {
   /**
    * Constructor for the Attachment Service.
    */
   constructor(
     private readonly _helperService: HelperService,
     private readonly _globalResponses: GlobalResponses,
+    private readonly _s3Service: S3Service,
   ) {
     super(Attachment);
   }
@@ -44,79 +47,112 @@ export class AttachmentService extends BaseService {
     parent: string,
     type: string,
     file: Express.Multer.File,
-  ): Promise<object> {
+  ): Promise<
+    | Attachment
+    | { fileOriginalName: string; filePath: string; fileUniqueName: string }
+  > {
     try {
-      const path = `uploads/${parent}/${parentId}/${type}`;
-      await this._helperService.createDirectory(path);
-
       const splitAry = file.originalname.split(".");
       const ext = splitAry[splitAry.length - 1];
       const name = uuidv1() + "." + ext;
+      const folder = `attachments/${parent}/${parentId}/${type}`;
 
-      await this._helperService.CreateFile(
-        `./${path}/${name}`,
+      // Upload original file to S3
+      await this._s3Service.uploadFile(
+        name,
         file.buffer,
-        "binary",
-      );
-      await this._helperService.resizeImage(
-        `./${path}/${name}`,
-        256,
-        256,
-        60,
-        true,
-      );
-      await this._helperService.resizeImage(
-        `./${path}/${name}`,
-        512,
-        512,
-        60,
-        true,
+        file.mimetype,
+        folder,
       );
 
-      const attachmentExist = await this.findOne({ parentId, parent, type });
+      // Create resized versions and upload to S3
+      const resized256Buffer = await this._helperService.resizeImageBuffer(
+        file.buffer,
+        256,
+        256,
+        60,
+      );
+      const resized512Buffer = await this._helperService.resizeImageBuffer(
+        file.buffer,
+        512,
+        512,
+        60,
+      );
+
+      await this._s3Service.uploadFile(
+        `256x256_${name}`,
+        resized256Buffer,
+        file.mimetype,
+        folder,
+      );
+      await this._s3Service.uploadFile(
+        `512x512_${name}`,
+        resized512Buffer,
+        file.mimetype,
+        folder,
+      );
+
+      const attachmentExist = await this.findOne(req, {
+        parentId,
+        parent,
+        type,
+      });
 
       if (attachmentExist) {
         const fields = {
           fileOriginalName: file.originalname,
-          filePath: path,
+          filePath: folder,
           fileUniqueName: name,
         };
-        await this.updateById(attachmentExist.id, fields);
+        await this.update(req, { id: attachmentExist.id }, fields);
         if (attachmentExist.fileUniqueName) {
           try {
-            await this._helperService.deleteFile(
-              `./${path}/${attachmentExist.fileUniqueName}`,
+            // Delete previous files from S3
+            await this._s3Service.deleteFile(
+              attachmentExist.fileUniqueName,
+              attachmentExist.filePath,
             );
-            await this._helperService.deleteFile(
-              `./${path}/256x256_${attachmentExist.fileUniqueName}`,
+            await this._s3Service.deleteFile(
+              `256x256_${attachmentExist.fileUniqueName}`,
+              attachmentExist.filePath,
             );
-            await this._helperService.deleteFile(
-              `./${path}/512x512_${attachmentExist.fileUniqueName}`,
+            await this._s3Service.deleteFile(
+              `512x512_${attachmentExist.fileUniqueName}`,
+              attachmentExist.filePath,
             );
           } catch (error) {
             console.error(error);
           }
         }
-        return {};
+        return {
+          fileOriginalName: file.originalname,
+          filePath: folder,
+          fileUniqueName: name,
+        };
       } else {
         const fields = {
           parentId,
           parent,
           type,
           fileOriginalName: file.originalname,
-          filePath: path,
+          filePath: folder,
           fileUniqueName: name,
         };
-        return await this.create(fields);
+        return await this.create(
+          req,
+          {
+            ...fields,
+            createdBy: req.user?.id || null,
+            updatedBy: req.user?.id || null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as any,
+          { returning: true },
+        );
       }
     } catch (error) {
       console.error(error);
-      throw this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "attachment_not_created",
-      );
+      throw error;
     }
   }
 
@@ -138,35 +174,40 @@ export class AttachmentService extends BaseService {
     type: string,
   ): Promise<object> {
     try {
-      const attachmentExist = await this.findOne({ parentId, parent, type });
+      const attachmentExist = await this.findOne(req, {
+        parentId,
+        parent,
+        type,
+      });
       if (attachmentExist) {
-        await this.deleteById(attachmentExist.id);
+        await this.delete(req, { id: attachmentExist.id });
         if (attachmentExist.fileUniqueName) {
-          await this._helperService.deleteFile(
-            `./${attachmentExist.filePath}${attachmentExist.fileUniqueName}`,
-          );
-          await this._helperService.deleteFile(
-            `./${attachmentExist.filePath}256x256_${attachmentExist.fileUniqueName}`,
-          );
-          await this._helperService.deleteFile(
-            `./${attachmentExist.filePath}512x512_${attachmentExist.fileUniqueName}`,
-          );
+          try {
+            // Delete files from S3
+            await this._s3Service.deleteFile(
+              attachmentExist.fileUniqueName,
+              attachmentExist.filePath,
+            );
+            await this._s3Service.deleteFile(
+              `256x256_${attachmentExist.fileUniqueName}`,
+              attachmentExist.filePath,
+            );
+            await this._s3Service.deleteFile(
+              `512x512_${attachmentExist.fileUniqueName}`,
+              attachmentExist.filePath,
+            );
+          } catch (error) {
+            console.error("Error deleting files from S3:", error);
+          }
         }
       }
-      return this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-        null,
-        "attachment_removed",
-      );
+      return {
+        status: RESPONSE_STATUSES.SUCCESS,
+        message: "attachment_removed",
+      };
     } catch (error) {
       console.error(error);
-      throw this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "attachment_not_deleted",
-      );
+      throw error;
     }
   }
 
@@ -189,19 +230,15 @@ export class AttachmentService extends BaseService {
     type: string,
   ): Promise<object> {
     try {
-      const attachment = await this.findOne({ parentId, parent, type }, null, [
-        "filePath",
-        "fileUniqueName",
-      ]);
+      const attachment = await this.findOne(
+        req,
+        { parentId, parent, type },
+        { attributes: ["filePath", "fileUniqueName"] },
+      );
       return attachment;
     } catch (error) {
       console.error(error);
-      throw this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        error,
-        "attachment_not_found",
-      );
+      throw error;
     }
   }
 }

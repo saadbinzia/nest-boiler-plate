@@ -8,12 +8,14 @@ import { ApiResponse } from "src/core/config/interface/globalResponses.interface
 import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
 import { Attachment, User } from "src/entities";
 import { AttachmentService } from "../attachment/attachment.service";
-import { VerificationCodeTypeEnum } from "../auth/userVerificationCode/interface/userVerificationCode.interface";
 import { UserVerificationCodeService } from "../auth/userVerificationCode/userVerificationCode.service";
 import { ChangeUserPasswordDTO, ResendCodeDTO, UpdateUserDTO } from "./dto";
 
+const { RESPONSE_STATUSES, REGISTRATION_STATUSES, VERIFICATION_CODE_TYPE } =
+  GlobalEnums;
+
 @Injectable()
-export class UserService extends BaseService {
+export class UserService extends BaseService<User> {
   constructor(
     @Inject(forwardRef(() => AttachmentService))
     private _attachmentService: AttachmentService,
@@ -32,38 +34,40 @@ export class UserService extends BaseService {
    */
   async find(req: AuthenticatedRequest): Promise<ApiResponse> {
     const user = await this.findOne(
+      req,
       { id: req.user.id },
       {
-        model: Attachment,
-        as: "profileImage",
-        attributes: ["filePath", "fileUniqueName"],
+        include: [
+          {
+            model: Attachment,
+            as: "profileImage",
+            attributes: ["filePath", "fileUniqueName"],
+          },
+        ],
+        attributes: [
+          "id",
+          "firstName",
+          "lastName",
+          "phoneNumber",
+          "email",
+          "role",
+          "registrationStatus",
+        ],
       },
-      [
-        "id",
-        "firstName",
-        "lastName",
-        "phoneNumber",
-        "email",
-        "role",
-        "username",
-        "preferredLanguage",
-        "referralUser",
-        "registrationStatus",
-      ],
     );
-    return user
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          user,
-          "user_found",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "user_not_found",
-        );
+
+    if (!user) {
+      const error = new Error("user_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
+
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      user,
+      "user_found",
+    );
   }
 
   /**
@@ -78,29 +82,24 @@ export class UserService extends BaseService {
     id: number,
     payload: UpdateUserDTO,
   ): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
+    const [, [user]] = await this.update(req, { id }, {
+      ...payload,
+      updatedAt: new Date(),
+    } as any);
+
+    if (!user) {
+      const error = new Error("user_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
+    delete user.dataValues.password;
+
+    return this._globalResponses.formatResponse(
       req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
+      RESPONSE_STATUSES.SUCCESS,
+      user,
+      "user_updated",
     );
-
-    const user = await this.updateOne({ id: id }, payload);
-    response = user
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          user,
-          "user_updated",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        );
-
-    return response;
   }
 
   /**
@@ -115,32 +114,16 @@ export class UserService extends BaseService {
     id: number,
     payload: ChangeUserPasswordDTO,
   ): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
+    const user = await this.findOne(
       req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
+      { id },
+      { attributes: { include: ["password"] } },
     );
 
-    if (payload.oldPassword === payload.newPassword) {
-      response = this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "old_and_new_password_are_same",
-      );
-
-      return response;
-    }
-
-    const user = await this.findOne({ id: id });
     if (!user) {
-      return this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "user_not_found",
-      );
+      const error = new Error("user_not_found");
+      error.name = "NotFoundError";
+      throw error;
     }
 
     const match = await bcrypt.compare(
@@ -149,25 +132,26 @@ export class UserService extends BaseService {
     );
 
     if (!match) {
-      return this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "old_password_invalid",
-      );
+      const error = new Error("old_password_invalid");
+      error.name = "BadRequestError";
+      throw error;
+    }
+
+    if (payload.oldPassword === payload.newPassword) {
+      const error = new Error("old_and_new_password_are_same");
+      error.name = "BadRequestError";
+      throw error;
     }
 
     const password = await bcrypt.hash(payload.newPassword, 10);
-    await this.updateById(id, { password: password });
+    await this.update(req, { id }, { password, updatedAt: new Date() });
 
-    response = this._globalResponses.formatResponse(
+    return this._globalResponses.formatResponse(
       req,
-      GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+      RESPONSE_STATUSES.SUCCESS,
       null,
       "password_changed_successfully",
     );
-
-    return response;
   }
 
   /**
@@ -180,39 +164,32 @@ export class UserService extends BaseService {
     req: Request,
     body: ResendCodeDTO,
   ): Promise<any> {
-    const user = await this.findOne({ email: body.email.toLowerCase() });
+    const user = await this.findOne(req, { email: body.email.toLowerCase() });
 
     if (user) {
       if (
-        user.registrationStatus ==
-        GlobalEnums.REGISTRATION_STATUSES.REGISTRATION_STARTED
+        user.registrationStatus === REGISTRATION_STATUSES.PENDING.toString()
       ) {
-        await this._userVerificationCodeService.sendVerificationEmail(
+        await this._userVerificationCodeService.createVerificationCodeByEmail(
           req,
-          body.email.toLowerCase(),
-          VerificationCodeTypeEnum.REGISTRATION,
+          user.email,
+          VERIFICATION_CODE_TYPE.REGISTRATION,
         );
         return this._globalResponses.formatResponse(
           req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+          RESPONSE_STATUSES.SUCCESS,
           null,
           "registration_code_sent_again",
         );
       } else {
-        return this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "user_already_verified",
-        );
+        const error = new Error("user_already_verified");
+        error.name = "BadRequestError";
+        throw error;
       }
     } else {
-      return this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "user_not_found",
-      );
+      const error = new Error("user_not_found");
+      error.name = "NotFoundError";
+      throw error;
     }
   }
 
@@ -238,17 +215,14 @@ export class UserService extends BaseService {
 
       return this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+        RESPONSE_STATUSES.SUCCESS,
         attachment,
         "image_uploaded",
       );
     } else {
-      return this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "file_not_found",
-      );
+      const error = new Error("file_not_found");
+      error.name = "BadRequestError";
+      throw error;
     }
   }
 
@@ -268,7 +242,7 @@ export class UserService extends BaseService {
 
     return this._globalResponses.formatResponse(
       req,
-      GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+      RESPONSE_STATUSES.SUCCESS,
       null,
       "image_deleted",
     );

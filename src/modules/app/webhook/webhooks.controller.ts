@@ -1,22 +1,12 @@
-import { Controller, Post, Req } from "@nestjs/common";
+import {
+  Controller
+} from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
 import { WebhookService } from "./webhook.service";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
-@ApiTags("Webhooks (Not configured yet)")
-@Controller("Webhooks")
+@ApiTags("Webhooks")
+@Controller("ebhooks")
 export class WebhooksController {
   constructor(private readonly _webhookService: WebhookService) {}
 
-  @Post("")
-  @ApiOperation({
-    summary: "webhooks",
-    description: "webhooks",
-  })
-  async webhooks(@Req() req) {
-    try {
-      console.log(req);
-    } catch (error) {
-      console.error(error);
-    }
-  }
 }

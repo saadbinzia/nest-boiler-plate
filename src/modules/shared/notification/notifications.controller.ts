@@ -27,8 +27,9 @@ import {
 import { JwtAuthGuard } from "src/core/guards/jwt-auth.guard";
 import { NotificationService } from "./notification.service";
 
+const { RESPONSE_STATUSES } = GlobalEnums;
 @ApiTags("Notification")
-@Controller("notifications")
+@Controller("shared/notifications")
 export class NotificationsController {
   constructor(
     private readonly _notificationService: NotificationService,
@@ -70,22 +71,23 @@ export class NotificationsController {
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
     @Param() { notificationId }: { notificationId: string },
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._notificationService.findNotification(
         req,
         +notificationId,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -116,20 +118,21 @@ export class NotificationsController {
   async findeAllNotifications(
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response =
         await this._notificationService.findAllNotifications(req);
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -177,22 +180,23 @@ export class NotificationsController {
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
     @Param() { notificationId }: { notificationId: string },
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._notificationService.readNotification(
         req,
         +notificationId,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 }

@@ -1,41 +1,111 @@
 'use strict';
 
 /** @type {import('sequelize-cli').Migration} */
-module.exports = {
+module.exports = {  
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('tbl_users', {
-      id: { type: Sequelize.BIGINT, allowNull: false, autoIncrement: true, unique: true, primaryKey: true },
+      id: { 
+        type: Sequelize.BIGINT, 
+        allowNull: false, 
+        autoIncrement: true, 
+        unique: true, 
+        primaryKey: true 
+      },
 
-      // The columns we want to create in database
-      email: { type: Sequelize.STRING, unique: true, allowNull: false },
-      password: { type: Sequelize.STRING, },
-      role: { type: Sequelize.STRING, allowNull: false },
-      first_name: { type: Sequelize.STRING, },
-      last_name: { type: Sequelize.STRING, },
-      status: { type: Sequelize.BIGINT, },
-      phone_number: { type: Sequelize.STRING, },
-      registration_status: { type: Sequelize.STRING, },
-      verification_link: { type: Sequelize.STRING, },
-      profile_pic: { type: Sequelize.STRING, },
+      email: { 
+        type: Sequelize.STRING, 
+        unique: true, 
+        allowNull: false,
+        validate: {
+          isEmail: true,
+          notEmpty: true
+        }
+      },
+      password: { 
+        type: Sequelize.STRING,
+        allowNull: true,
+        validate: {
+          notEmpty: {
+            msg: 'Password cannot be empty',
+          },
+        },
+      },
 
-      /**
-       * To Create logs
-       * created_by => Contains the id of admin who created the record
-       * updated_by => Contains the id of admin who updated the record
-       * createdAt => Contains the time when the record was created
-       * updatedAt => Contains the time when the record was updated
-       */
-      created_by: { type: Sequelize.BIGINT, },
-      updated_by: { type: Sequelize.BIGINT, },
-      createdAt: { type: Sequelize.DATE, defaultValue: Sequelize.literal('NOW()') },
-      updatedAt: { type: Sequelize.DATE, defaultValue: Sequelize.literal('NOW()') }
+      role: { 
+        type: Sequelize.ENUM('admin', 'user', 'manager', 'staff'),
+        allowNull: false,
+        defaultValue: 'user',
+      },
+
+      first_name: { 
+        type: Sequelize.STRING(100),
+        allowNull: true,
+        validate: {
+          len: [1, 100],
+        },
+      },
+
+      last_name: { 
+        type: Sequelize.STRING(100),
+        allowNull: true,
+        validate: {
+          len: [1, 100],
+        },
+      },
+
+      status: { 
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 10, // ACTIVE
+        validate: {
+          isIn: [[10, 20]], // ACTIVE, IN_ACTIVE
+        },
+      },
+
+      phone_number: { 
+        type: Sequelize.STRING,
+        allowNull: true,
+        validate: {
+          is: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
+        },
+      },
+
+      registration_status: { 
+        type: Sequelize.ENUM('pending', 'completed', 'verification_pending'),
+        allowNull: false,
+        defaultValue: 'pending',
+      },
+      
+      created_by: { 
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      },
+
+      updated_by: { 
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      },
+
+      created_at: { 
+        type: Sequelize.DATE, 
+        allowNull: false,
+        defaultValue: Sequelize.literal('NOW()') 
+      },
+
+      updated_at: { 
+        type: Sequelize.DATE, 
+        allowNull: false,
+        defaultValue: Sequelize.literal('NOW()') 
+      },
+      
+      deleted_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
     });
-
-
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('tbl_users');
-
   }
 };

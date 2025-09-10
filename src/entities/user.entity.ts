@@ -1,125 +1,201 @@
 import {
-  BelongsTo,
+  IsBoolean,
+  IsDate,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+} from "class-validator";
+import {
   Column,
   DataType,
+  DefaultScope,
   HasMany,
   HasOne,
   Model,
+  Scopes,
   Table,
 } from "sequelize-typescript";
-import { Attachment, UserSession } from "./index";
+import {
+  GlobalEnums,
+  TActiveStatus,
+  TRegistrationStatus,
+  TUserRole,
+} from "src/core/config/globalEnums";
+import {
+  Attachment,
+  Notification,
+  SocialLogin,
+  UserSession,
+  UserVerificationCode,
+} from "./index";
 
+const { USER_ROLES, ACTIVE_STATUSES, REGISTRATION_STATUSES } = GlobalEnums;
+
+@DefaultScope(() => ({
+  attributes: { exclude: ["password"] }, // Exclude password by default
+  include: [
+    {
+      model: Attachment,
+      as: "profileImage",
+      required: false,
+    },
+  ],
+}))
+@Scopes(() => ({
+  withPassword: {
+    attributes: { include: ["password"] },
+  },
+  withSessions: {
+    include: [{ model: UserSession }],
+  },
+}))
 @Table({
-  modelName: "tbl_users",
+  tableName: "tbl_users",
+  timestamps: true,
+  underscored: true,
+  paranoid: true, // Enable soft deletes
 })
 export class User extends Model<User> {
+  @IsEmail({}, { message: "Please provide a valid email address" })
   @Column({
     type: DataType.STRING,
     unique: true,
     allowNull: false,
+    validate: {
+      isEmail: true,
+      notEmpty: true,
+    },
   })
   email: string;
 
+  @IsString()
+  @Length(8, 100, { message: "Password must be between 8 and 100 characters" })
   @Column({
     type: DataType.STRING,
+    allowNull: true, // Allow null for OAuth users
+    validate: {
+      notEmpty: {
+        msg: "Password cannot be empty",
+      },
+    },
   })
   password: string;
 
+  @IsIn(Object.values(USER_ROLES))
   @Column({
-    type: DataType.STRING,
+    type: DataType.ENUM(...Object.values(USER_ROLES)),
     allowNull: false,
+    defaultValue: USER_ROLES.USER,
   })
-  role: string;
+  role: TUserRole;
 
+  @IsString()
+  @Length(1, 100, {
+    message: "First name must be between 1 and 100 characters",
+  })
   @Column({
     type: DataType.STRING,
-    field: "first_name",
+    allowNull: true,
   })
   firstName: string;
 
+  @IsString()
+  @Length(1, 100, { message: "Last name must be between 1 and 100 characters" })
   @Column({
     type: DataType.STRING,
-    field: "last_name",
+    allowNull: true,
   })
   lastName: string;
 
+  @IsIn(Object.values(ACTIVE_STATUSES))
   @Column({
     type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: ACTIVE_STATUSES.ACTIVE,
+    validate: {
+      isIn: [Object.values(ACTIVE_STATUSES).map(Number)],
+    },
   })
-  status: number;
+  status: TActiveStatus;
 
+  @IsString()
+  @IsOptional()
   @Column({
     type: DataType.STRING,
-    field: "phone_number",
+    allowNull: true,
+    validate: {
+      is: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
+    },
   })
   phoneNumber: string;
 
+  @IsIn(Object.values(REGISTRATION_STATUSES))
   @Column({
-    type: DataType.STRING,
-    field: "registration_status",
+    type: DataType.ENUM(...Object.values(REGISTRATION_STATUSES)),
+    allowNull: false,
+    defaultValue: REGISTRATION_STATUSES.PENDING,
   })
-  registrationStatus: string;
+  registrationStatus: TRegistrationStatus;
 
-  @Column({
-    type: DataType.STRING,
-  })
-  username: string;
-
+  @IsBoolean()
   @Column({
     type: DataType.BOOLEAN,
-    field: "keep_user_updated",
     defaultValue: false,
   })
-  keepUserUpdated: number;
+  agreeTermsAndConditions: boolean;
 
+  @IsInt()
+  @IsOptional()
   @Column({
     type: DataType.INTEGER,
-    field: "agree_terms_and_conditions",
-    defaultValue: false,
-  })
-  agreeTermsAndConditions: number;
-
-  @Column({
-    type: DataType.STRING,
-    field: "referral_user",
-  })
-  referralUser: string;
-  @BelongsTo(() => User, { foreignKey: "referralUser", targetKey: "username" })
-  referralUserData: User;
-
-  @Column({
-    type: DataType.STRING,
-    field: "preferred_language",
-  })
-  preferredLanguage: string;
-
-  @Column({
-    type: DataType.INTEGER,
-    field: "created_by",
+    allowNull: true,
   })
   createdBy: number;
 
+  @IsInt()
+  @IsOptional()
   @Column({
     type: DataType.INTEGER,
-    field: "updated_by",
+    allowNull: true,
   })
   updatedBy: number;
 
+  @IsDate()
   @Column({
     type: DataType.DATE,
   })
   createdAt: Date;
 
+  @IsDate()
   @Column({
     type: DataType.DATE,
   })
   updatedAt: Date;
 
-  @HasMany(() => UserSession)
-  UserSessions: UserSession;
+  @IsDate()
+  @IsOptional()
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  deletedAt: Date;
 
-  @HasMany(() => User, { sourceKey: "username", foreignKey: "referralUser" })
-  referralUsers: User[];
+  // ====================== RELATIONSHIPS ======================
+
+  @HasMany(() => UserSession)
+  sessions: UserSession[];
+
+  @HasMany(() => Notification)
+  notifications: Notification[];
+
+  @HasMany(() => SocialLogin)
+  socialLogins: SocialLogin[];
+
+  @HasMany(() => UserVerificationCode)
+  verificationCodes: UserVerificationCode[];
 
   @HasOne(() => Attachment, {
     sourceKey: "id",
@@ -128,6 +204,19 @@ export class User extends Model<User> {
       parent: "users",
       type: "profile",
     },
+    as: "profileImage",
+    constraints: false,
   })
   profileImage: Attachment;
+
+
+  // ====================== VIRTUAL FIELDS ======================
+
+  get fullName(): string {
+    return `${this.firstName || ""} ${this.lastName || ""}`.trim();
+  }
+
+  get isSuperAdmin(): boolean {
+    return this.role === USER_ROLES.SUPER_ADMIN;
+  }
 }

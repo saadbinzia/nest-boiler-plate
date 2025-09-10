@@ -30,23 +30,9 @@ export class GlobalEnums {
    * Represents the different stages a user goes through during registration.
    */
   static readonly REGISTRATION_STATUSES = {
-    /**
-     * Registration has started.
-     * User has initiated the registration process.
-     */
-    REGISTRATION_STARTED: 10,
-
-    /**
-     * User has been verified.
-     * Verification process for the user is complete.
-     */
-    USER_VERIFIED: 20,
-
-    /**
-     * Registration has been completed.
-     * User has successfully completed the registration process.
-     */
-    REGISTRATION_COMPLETED: 30,
+    PENDING: "pending",
+    COMPLETED: "completed",
+    VERIFICATION_PENDING: "verification_pending",
   };
 
   /**
@@ -68,6 +54,8 @@ export class GlobalEnums {
   static readonly USER_ROLES = {
     SUPER_ADMIN: "admin",
     USER: "user",
+    MANAGER: "manager",
+    STAFF: "staff",
   };
 
   /**
@@ -92,4 +80,60 @@ export class GlobalEnums {
   static readonly SYSTEM_SETTING_KEYS = {
     VERIFICATION_CODE_EXPIRY: "verificationCodeExpiry",
   };
+
+  /**
+   * Verification Code Status
+   * @description Possible statuses for verification codes
+   */
+  static readonly VERIFICATION_CODE_STATUS = {
+    PENDING: "PENDING",
+    VERIFIED: "VERIFIED",
+    EXPIRED: "EXPIRED",
+    USED: "USED",
+  } as const;
+
+  /**
+   * Verification Code Type
+   * @description Possible types of verification codes
+   */
+  static readonly VERIFICATION_CODE_TYPE = {
+    PASSWORD_RESET: "PASSWORD_RESET",
+    REGISTRATION: "REGISTRATION",
+  } as const;
+
+  static readonly SESSION_STATUS = {
+    ACTIVE: "active",
+    EXPIRED: "expired",
+    REVOKED: "revoked",
+  };
+
+  static readonly ATTACHMENT_PARENT = {
+    USER: "users",
+    CHANNEL: "channels",
+    VIDEO: "video",
+  };
+
+  static readonly ATTACHMENT_TYPES = {
+    LOGO: "logo",
+    THUMBNAIL: "thumbnail",
+    PROFILE: "profile",
+    OTHER: "other",
+  };
 }
+
+export type TUserRole =
+  (typeof GlobalEnums.USER_ROLES)[keyof typeof GlobalEnums.USER_ROLES];
+export type TActiveStatus =
+  (typeof GlobalEnums.ACTIVE_STATUSES)[keyof typeof GlobalEnums.ACTIVE_STATUSES];
+export type TRegistrationStatus =
+  (typeof GlobalEnums.REGISTRATION_STATUSES)[keyof typeof GlobalEnums.REGISTRATION_STATUSES];
+export type TVerificationCodeStatus =
+  (typeof GlobalEnums.VERIFICATION_CODE_STATUS)[keyof typeof GlobalEnums.VERIFICATION_CODE_STATUS];
+export type TVerificationCode =
+  (typeof GlobalEnums.VERIFICATION_CODE_TYPE)[keyof typeof GlobalEnums.VERIFICATION_CODE_TYPE];
+export type TSessionStatus =
+  (typeof GlobalEnums.SESSION_STATUS)[keyof typeof GlobalEnums.SESSION_STATUS];
+export type TAttachmentParent =
+  (typeof GlobalEnums.ATTACHMENT_PARENT)[keyof typeof GlobalEnums.ATTACHMENT_PARENT];
+export type TAttachmentTypes =
+  (typeof GlobalEnums.ATTACHMENT_TYPES)[keyof typeof GlobalEnums.ATTACHMENT_TYPES];

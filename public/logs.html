@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Logs Viewer</title>
+    <style>
+      :root {
+        --bg: #1e1e1e;
+        --text: #d4d4d4;
+        --accent: #00ff90;
+        --muted: #8f8f8f;
+        --error-light: #ff6;
+        --error: #f55;
+      }
+
+      body {
+        font-family: "Courier New", monospace;
+        background-color: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 2rem;
+      }
+
+      h1 {
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+      }
+
+      .actions {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      button {
+        background-color: transparent;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+      }
+
+      button:hover {
+        background-color: var(--accent);
+        color: #000;
+      }
+
+      .message {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .log-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #2a2a2a;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 0 10px #000;
+      }
+
+      .log-table thead {
+        background-color: #333;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+
+      .log-table th,
+      .log-table td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      .log-table th:nth-child(1),
+      .log-table th:nth-child(2),
+      .log-table th:nth-child(3),
+      .log-table td:nth-child(1),
+      .log-table td:nth-child(2),
+      .log-table td:nth-child(3) {
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+      .log-table th:nth-child(4),
+      .log-table td:nth-child(4) {
+        font-size: 1rem;
+        color: var(--error-light);
+      }
+
+      .log-table th {
+        color: var(--accent);
+        font-weight: bold;
+        border-bottom: 1px solid var(--accent);
+      }
+
+      .log-table td {
+        color: var(--text);
+        border-bottom: 1px solid #444;
+        word-wrap: break-word;
+      }
+
+      .error-message {
+        color: var(--error-light);
+        white-space: pre-wrap;
+      }
+
+      .no-logs {
+        padding: 1rem;
+        color: var(--muted);
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>FFmpeg Logs</h1>
+
+    <div class="actions">
+      <input type="text" id="streamIdInput" placeholder="Search by Stream ID" style="padding: 0.5rem; border-radius: 4px; border: 1px solid var(--muted); background: #222; color: var(--text); width: 180px;" />
+      <button onclick="searchLogs()">🔍 Search</button>
+      <button onclick="clearSearch()">❌ Clear</button>
+      <button onclick="openConfirmModal()">🗑 Delete All Logs</button>
+      <span class="message" id="statusMessage"></span>
+    </div>
+
+    <div style="max-height: 70vh; overflow-y: auto;">
+      <table class="log-table">
+        <colgroup>
+          <col style="width: 8%">
+          <col style="width: 8%">
+          <col style="width: 20%">
+          <col style="width: 64%">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Type</th>
+            <th>Stream ID</th>
+            <th>Error Message</th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody">
+          <tr>
+            <td colspan="4" class="no-logs">Loading logs...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay" style="display: none">
+      <div class="modal">
+        <p>Are you sure you want to delete <strong>all logs</strong>?</p>
+        <div class="modal-buttons">
+          <button onclick="confirmDelete()" class="danger">Yes, Delete</button>
+          <button onclick="closeConfirmModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      async function fetchLogs(streamId = "") {
+        const tableBody = document.getElementById("logTableBody");
+        const statusMessage = document.getElementById("statusMessage");
+
+        let url = "/logging";
+        if (streamId) {
+          url += `?streamId=${encodeURIComponent(streamId)}`;
+        }
+
+        try {
+          const res = await fetch(url);
+          const logs = await res.json();
+
+          if (!Array.isArray(logs) || logs.length === 0) {
+            tableBody.innerHTML =
+              '<tr><td colspan="4" class="no-logs">No logs found.</td></tr>';
+            return;
+          }
+
+          tableBody.innerHTML = logs
+            .map(
+              (log) => `
+                <tr>
+                  <td>${log.createdAt}</td>
+                  <td>${log.logType}</td>
+                  <td>${log.streamId}</td>
+                  <td class="error-message">${log.errorMessage || "(No error message)"}</td>
+                </tr>
+              `
+            )
+            .join("");
+        } catch (err) {
+          tableBody.innerHTML =
+            '<tr><td colspan="4" class="no-logs">Failed to load logs.</td></tr>';
+          statusMessage.textContent = "Could not fetch logs.";
+        }
+      }
+
+      function searchLogs() {
+        const streamId = document.getElementById("streamIdInput").value.trim();
+        fetchLogs(streamId);
+      }
+
+      function clearSearch() {
+        document.getElementById("streamIdInput").value = "";
+        fetchLogs();
+      }
+
+      function openConfirmModal() {
+        document.getElementById("confirmModal").style.display = "flex";
+      }
+
+      function closeConfirmModal() {
+        document.getElementById("confirmModal").style.display = "none";
+      }
+
+      async function confirmDelete() {
+        const statusMessage = document.getElementById("statusMessage");
+        closeConfirmModal();
+        statusMessage.textContent = "Deleting logs...";
+
+        try {
+          const res = await fetch("/logging", { method: "DELETE" });
+
+          if (res.ok) {
+            statusMessage.textContent = "All logs deleted successfully.";
+            await fetchLogs();
+          } else {
+            statusMessage.textContent = "Failed to delete logs.";
+          }
+        } catch (err) {
+          statusMessage.textContent = "Error deleting logs.";
+        }
+      }
+
+      fetchLogs();
+    </script>
+  </body>
+</html>

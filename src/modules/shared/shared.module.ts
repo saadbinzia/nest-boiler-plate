@@ -8,6 +8,7 @@ import { UserSessionService } from "./auth/userSession/userSession.service";
 import { CacheModule } from "./cache/cache.module";
 import { NotificationModule } from "./notification/notification.module";
 import { UserModule } from "./user/user.module";
+import { S3Module } from "./s3/s3.module";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { UserModule } from "./user/user.module";
     forwardRef(() => CacheModule),
     forwardRef(() => AuthModule),
     forwardRef(() => NotificationModule),
+    S3Module,
   ],
   providers: [
     SharedAuthService,

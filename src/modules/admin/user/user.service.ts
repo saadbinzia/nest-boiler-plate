@@ -10,9 +10,12 @@ import * as bcrypt from "bcrypt";
 import { Request } from "express";
 import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
 import { AttachmentService } from "src/modules/shared/attachment/attachment.service";
+import { plainToInstance } from "class-transformer";
 
+const { RESPONSE_STATUSES, ACTIVE_STATUSES, REGISTRATION_STATUSES } =
+  GlobalEnums;
 @Injectable()
-export class UserService extends BaseService {
+export class UserService extends BaseService<User> {
   constructor(
     @Inject(forwardRef(() => AttachmentService))
     private _attachmentService: AttachmentService,
@@ -22,24 +25,11 @@ export class UserService extends BaseService {
     super(User);
   }
 
-  async findByEmail(email: string): Promise<object> {
-    return this.findOne({ email: email.toLowerCase() });
-  }
-
-  /**
-   * Generate username
-   * @description generate unique username.
-   * @param {String} name
-   * @returns {Promise<string>}
-   */
-  async generateUsername(name: string): Promise<string> {
-    const uid = name + Number(new Date());
-    const idExist = await this.findOne({ username: uid });
-    if (!idExist) {
-      return uid;
-    } else {
-      return this.generateUsername(uid);
-    }
+  async findByEmail(
+    req: Request | AuthenticatedRequest,
+    email: string,
+  ): Promise<object> {
+    return this.findOne(req, { email: email.toLowerCase() });
   }
 
   /**
@@ -53,57 +43,47 @@ export class UserService extends BaseService {
     payload: UserDTO,
     role: string,
   ): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
-      req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
-    );
-
-    const userExists = await this.findByEmail(payload.email);
+    const userExists = await this.findByEmail(req, payload.email);
 
     // Check if user exists against this email then notify user.
     if (userExists) {
-      response = this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "email_already_exists",
-      );
-    } else {
-      let hashPass = null;
-
-      if (payload.password) {
-        hashPass = await bcrypt.hash(payload.password, 10);
-      }
-
-      const userPayload = {
-        ...payload,
-        password: hashPass,
-        role: role,
-        status: GlobalEnums.ACTIVE_STATUSES.ACTIVE,
-        username: await this.generateUsername(payload.firstName),
-        registrationStatus:
-          GlobalEnums.REGISTRATION_STATUSES.REGISTRATION_COMPLETED,
-      };
-
-      const newUser = await this.create(userPayload);
-
-      if (newUser) {
-        const result = { ...newUser["dataValues"] };
-
-        delete result.password; // Remove the 'password' property
-
-        response = this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          result,
-          "user_created",
-        );
-      }
+      const error = new Error("email_already_exists");
+      error.name = "ConflictError";
+      throw error;
     }
 
-    return response;
+    let hashPass = null;
+
+    if (payload.password) {
+      hashPass = await bcrypt.hash(payload.password, 10);
+    }
+
+    const userPayload = {
+      ...payload,
+      password: hashPass,
+      role: role,
+      status: ACTIVE_STATUSES.ACTIVE,
+      registrationStatus: REGISTRATION_STATUSES.COMPLETED,
+    };
+
+    const userData = plainToInstance(User, userPayload);
+
+    const newUser = await this.create(req, userData);
+
+    if (!newUser) {
+      throw new Error("Failed to create user");
+    }
+
+    const result = { ...newUser["dataValues"] };
+
+    delete result.password; // Remove the 'password' property
+
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      result,
+      "user_created",
+    );
   }
 
   /**
@@ -114,38 +94,40 @@ export class UserService extends BaseService {
    */
   async find(req: AuthenticatedRequest, userId: number): Promise<ApiResponse> {
     const user = await this.findOne(
+      req,
       { id: userId },
       {
-        model: Attachment,
-        as: "profileImage",
-        attributes: ["filePath", "fileUniqueName"],
+        include: [
+          {
+            model: Attachment,
+            as: "profileImage",
+            attributes: ["filePath", "fileUniqueName"],
+          },
+        ],
+        attributes: [
+          "id",
+          "firstName",
+          "lastName",
+          "phoneNumber",
+          "email",
+          "role",
+          "registrationStatus",
+        ],
       },
-      [
-        "id",
-        "firstName",
-        "lastName",
-        "phoneNumber",
-        "email",
-        "role",
-        "username",
-        "preferredLanguage",
-        "referralUser",
-        "registrationStatus",
-      ],
     );
-    return user
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          user,
-          "user_found",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "user_not_found",
-        );
+
+    if (!user) {
+      const error = new Error("user_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
+
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      user,
+      "user_found",
+    );
   }
 
   /**
@@ -160,29 +142,20 @@ export class UserService extends BaseService {
     id: number,
     payload: UpdateUserDTO,
   ): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
+    const user = await this.update(req, { id: id }, payload);
+
+    if (!user) {
+      const error = new Error("user_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
+
+    return this._globalResponses.formatResponse(
       req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
+      RESPONSE_STATUSES.SUCCESS,
+      user,
+      "user_updated",
     );
-
-    const user = await this.updateOne({ id: id }, payload);
-    response = user
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          user,
-          "user_updated",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        );
-
-    return response;
   }
 
   /**
@@ -208,17 +181,14 @@ export class UserService extends BaseService {
 
       return this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+        RESPONSE_STATUSES.SUCCESS,
         attachment,
         "image_uploaded",
       );
     } else {
-      return this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        "file_not_found",
-      );
+      const error = new Error("file_not_found");
+      error.name = "NotFoundError";
+      throw error;
     }
   }
 
@@ -241,7 +211,7 @@ export class UserService extends BaseService {
 
     return this._globalResponses.formatResponse(
       req,
-      GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+      RESPONSE_STATUSES.SUCCESS,
       null,
       "image_deleted",
     );

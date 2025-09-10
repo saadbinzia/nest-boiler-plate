@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { plainToInstance } from "class-transformer";
 import { BaseService } from "src/core/base/base.service";
 import { GlobalEnums } from "src/core/config/globalEnums";
 import GlobalResponses from "src/core/config/GlobalResponses";
@@ -7,8 +8,9 @@ import { INotification } from "src/core/config/interface/notification.interface"
 import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
 import { Notification } from "src/entities";
 
+const { RESPONSE_STATUSES } = GlobalEnums;
 @Injectable()
-export class NotificationService extends BaseService {
+export class NotificationService extends BaseService<Notification> {
   constructor(private _globalResponses: GlobalResponses) {
     super(Notification);
   }
@@ -25,24 +27,32 @@ export class NotificationService extends BaseService {
     notificationId: number,
   ): Promise<ApiResponse> {
     const notification = await this.findOne(
+      req,
       { id: notificationId, userId: req.user.id },
-      null,
-      ["id", "title", "description", "redirectPage", "isRead", "otherDetails"],
+      {
+        attributes: [
+          "id",
+          "title",
+          "description",
+          "redirectPage",
+          "isRead",
+          "otherDetails",
+        ],
+      },
     );
 
-    return notification
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          notification,
-          "notification_found",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "notification_not_found",
-        );
+    if (!notification) {
+      const error = new Error("notification_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
+
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      notification,
+      "notification_found",
+    );
   }
 
   /**
@@ -53,17 +63,26 @@ export class NotificationService extends BaseService {
    */
   async findAllNotifications(req: AuthenticatedRequest): Promise<ApiResponse> {
     const notifications = await this.findAll(
+      req,
       {
         userId: req.user.id,
       },
-      null,
-      ["id", "title", "description", "redirectPage", "isRead", "otherDetails"],
-      [["id", "DESC"]],
+      {
+        attributes: [
+          "id",
+          "title",
+          "description",
+          "redirectPage",
+          "isRead",
+          "otherDetails",
+        ],
+        order: [["id", "DESC"]],
+      },
     );
 
     return this._globalResponses.formatResponse(
       req,
-      GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+      RESPONSE_STATUSES.SUCCESS,
       notifications,
       "notification_fetched",
     );
@@ -78,32 +97,22 @@ export class NotificationService extends BaseService {
     req: AuthenticatedRequest,
     notificationId: number,
   ): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
-      req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
-    );
-
-    const notification = await this.updateById(notificationId, {
+    const notification = await this.updateById(req, notificationId, {
       isRead: true,
     });
 
-    response = notification
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          null,
-          "notification_updated",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        );
+    if (!notification) {
+      const error = new Error("notification_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
 
-    return response;
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      null,
+      "notification_updated",
+    );
   }
 
   /**
@@ -112,14 +121,21 @@ export class NotificationService extends BaseService {
    * @param {INotification} payload
    * @return {Promise<void>}
    */
-  async createNotification(payload: INotification): Promise<void> {
-    const newNotification = await this.create({
-      ...payload,
-      isRead: false,
-    });
+  async createNotification(
+    req: AuthenticatedRequest,
+    payload: INotification,
+  ): Promise<void> {
+    try {
+      // Optional transformation step if INotification is a DTO
+      const notificationData = plainToInstance(Notification, payload);
 
-    if (newNotification) {
-      console.log(0);
+      const newNotification = await this.create(req, notificationData);
+
+      if (newNotification) {
+        console.log("Notification created");
+      }
+    } catch (error) {
+      console.error("Failed to create notification:", error);
     }
 
     return;

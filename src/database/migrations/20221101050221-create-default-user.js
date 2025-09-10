@@ -2,7 +2,7 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up (queryInterface) {
     return queryInterface.bulkInsert('tbl_users', [{
       email: 'admin@site.com',
       password: '$2b$12$ONKoxjHM1U1Cjgp/v33A0.AD6XvPapgShF0YijpttuPuH78zastxm',
@@ -12,7 +12,7 @@ module.exports = {
     }]);
   },
 
-  async down (queryInterface, Sequelize) {
+  async down (queryInterface) {
     return queryInterface.bulkDelete('tbl_users', { email: 'admin@site.com' });
   }
 };

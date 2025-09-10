@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, Matches } from "class-validator";
+import { IsNotEmpty, Matches } from "class-validator";
 
 /**
  * User DTO (Data Transfer Object)
@@ -19,7 +19,4 @@ export class UpdateUserDTO {
   readonly lastName: string;
 
   readonly phoneNumber?: string;
-
-  @IsOptional()
-  readonly preferredLanguage: string;
 }

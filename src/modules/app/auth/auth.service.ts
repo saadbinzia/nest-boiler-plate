@@ -8,6 +8,7 @@ import { SharedAuthService } from "src/modules/shared/auth/auth.service";
 import { UserService } from "../user/user.service";
 import { AuthDto } from "./dto/auth.dto";
 
+const { USER_ROLES, RESPONSE_STATUSES, REGISTRATION_STATUSES } = GlobalEnums;
 @Injectable()
 export class AuthService {
   constructor(
@@ -45,48 +46,41 @@ export class AuthService {
   ): Promise<ApiResponse> {
     try {
       const user = await this._userService.findOne(
+        request,
         {
           email: payload.email.toLowerCase(),
-          role: GlobalEnums.USER_ROLES.USER,
+          role: USER_ROLES.USER,
         },
         {
-          model: Attachment,
-          as: "profileImage",
-          attributes: ["filePath", "fileUniqueName"],
+          include: [
+            {
+              model: Attachment,
+              as: "profileImage",
+              attributes: ["filePath", "fileUniqueName"],
+            },
+          ],
+          attributes: [
+            "firstName",
+            "lastName",
+            "password",
+            "id",
+            "email",
+            "registrationStatus",
+            "role",
+          ],
         },
-        [
-          "firstName",
-          "lastName",
-          "password",
-          "id",
-          "email",
-          "preferredLanguage",
-          "registrationStatus",
-          "role",
-        ],
       );
 
       if (!user) {
-        return this._globalResponses.formatResponse(
-          request,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "invalid_user_credentials",
-        );
+        const error = new Error("email_not_registered");
+        error.name = "BadRequestError";
+        throw error;
       }
 
-      if (
-        user.registrationStatus ==
-        GlobalEnums.REGISTRATION_STATUSES.REGISTRATION_STARTED
-      ) {
-        return this._globalResponses.formatResponse(
-          request,
-          GlobalEnums.RESPONSE_STATUSES.UN_VERIFIED_USER,
-          {
-            verified: false,
-          },
-          "user_not_verified",
-        );
+      if (user.registrationStatus == REGISTRATION_STATUSES.PENDING) {
+        const error = new Error("user_not_verified");
+        error.name = "BadRequestError";
+        throw error;
       }
 
       const match = await this._sharedAuthService.comparePassword(
@@ -95,12 +89,9 @@ export class AuthService {
       );
 
       if (!match) {
-        return this._globalResponses.formatResponse(
-          request,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "invalid_user_credentials",
-        );
+        const error = new Error("invalid_user_credentials");
+        error.name = "BadRequestError";
+        throw error;
       }
 
       const result = user["dataValues"];
@@ -112,24 +103,18 @@ export class AuthService {
         user.email,
         user.role,
         payload.rememberMe,
-        user.preferredLanguage,
       );
 
       return this._globalResponses.formatResponse(
         request,
-        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+        RESPONSE_STATUSES.SUCCESS,
         { token: token, user: result },
         "user_login",
       );
     } catch (error) {
       // TODO:high: Pass error to formatResponse function.
-      console.error(error);
-      return this._globalResponses.formatResponse(
-        request,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
-      );
+      console.error("Error => ", error);
+      throw error;
     }
   }
 }

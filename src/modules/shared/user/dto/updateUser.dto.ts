@@ -18,8 +18,9 @@ export class UpdateUserDTO {
   })
   readonly lastName: string;
 
-  readonly phoneNumber?: string;
-
   @IsOptional()
-  readonly preferredLanguage: string;
+  @Matches(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, {
+    message: "Invalid phone number format",
+  })
+  readonly phoneNumber?: string;
 }

@@ -29,11 +29,11 @@ import {
   SuccessResponse,
   UnprocessableResponse,
 } from "src/core/config/interface/swaggerResponse.dto";
-import { VerificationCodeTypeEnum } from "../../auth/userVerificationCode/interface/userVerificationCode.interface";
 import { UserVerificationCodeService } from "../../auth/userVerificationCode/userVerificationCode.service";
 
+const { VERIFICATION_CODE_TYPE, RESPONSE_STATUSES } = GlobalEnums;
 @ApiTags("Password Recovery for users")
-@Controller("forget-password")
+@Controller("shared/forget-password")
 export class ForgetPasswordsController {
   constructor(
     private readonly _forgetPasswordService: ForgetPasswordService,
@@ -84,25 +84,88 @@ export class ForgetPasswordsController {
     @Res() res: Response,
     @Req() req: Request,
     @Body() body: ForgetPasswordDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response =
-        await this._userVerificationCodeService.sendVerificationEmail(
+        await this._userVerificationCodeService.createVerificationCodeByEmail(
           req,
           body.email.toLowerCase(),
-          VerificationCodeTypeEnum.FORGET_PASSWORD,
+          VERIFICATION_CODE_TYPE.PASSWORD_RESET,
         );
 
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
-      console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  }
+
+  /**
+   * Resend Reset Email.
+   * @description Resend reset password email to user.
+   * @param {Response} res
+   * @param {ForgetPasswordDTO} body
+   * @returns {Promise<JSON>}
+   */
+  @Post("resend-reset-email")
+  @ApiOperation({
+    summary: "Resend reset password",
+    description: "Resend reset password.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Email will be sent if the email enetered is in our database",
+    type: SuccessResponse,
+  })
+  @ApiResponse({
+    status: 422,
+    description: "Unprocessable Entity",
+    type: UnprocessableResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Some kind of error",
+    type: ErrorResponse,
+  })
+  @ApiBody({
+    description: "Request reset password",
+    type: ForgetPasswordDTO,
+    examples: {
+      a: {
+        summary: "Sample request reset password",
+        value: {
+          email: "saadbinzia055@gmail.com",
+        },
+      },
+    },
+  })
+  async resendResetEmail(
+    @Res() res: Response,
+    @Req() req: Request,
+    @Body() body: ForgetPasswordDTO,
+  ): Promise<void> {
+    try {
+      const response =
+        await this._userVerificationCodeService.createVerificationCodeByEmail(
+          req,
+          body.email.toLowerCase(),
+          VERIFICATION_CODE_TYPE.PASSWORD_RESET,
+        );
+
+      res.status(response.statusCode).json(response);
+    } catch (error) {
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
+      );
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -150,23 +213,24 @@ export class ForgetPasswordsController {
     @Res() res: Response,
     @Req() req: Request,
     @Body() body: VerifyResetPasswordCodeDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.verifyCode(
         req,
         body,
-        VerificationCodeTypeEnum.FORGET_PASSWORD,
+        VERIFICATION_CODE_TYPE.PASSWORD_RESET,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -207,23 +271,24 @@ export class ForgetPasswordsController {
     @Res() res: Response,
     @Req() req: Request,
     @Param("uuid") uuid: string,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.verifyUUId(
         req,
         uuid,
-        VerificationCodeTypeEnum.FORGET_PASSWORD,
+        VERIFICATION_CODE_TYPE.PASSWORD_RESET,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -269,22 +334,23 @@ export class ForgetPasswordsController {
     @Res() res: Response,
     @Req() req: Request,
     @Body() body: ResetPasswordDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.resetPassword(
         req,
         body,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 }

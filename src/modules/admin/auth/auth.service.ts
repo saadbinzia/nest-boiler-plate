@@ -7,7 +7,9 @@ import { Attachment } from "src/entities";
 import { SharedAuthService } from "src/modules/shared/auth/auth.service";
 import { UserService } from "../user/user.service";
 import { AuthDto } from "./dto/auth.dto";
+import { Op } from "sequelize";
 
+const { USER_ROLES, RESPONSE_STATUSES } = GlobalEnums;
 @Injectable()
 export class AuthService {
   constructor(
@@ -43,18 +45,23 @@ export class AuthService {
     payload: AuthDto,
     request?: Request,
   ): Promise<ApiResponse> {
-    try {
-      const user = await this._userService.findOne(
-        {
-          email: payload.email.toLowerCase(),
-          role: GlobalEnums.USER_ROLES.SUPER_ADMIN,
-        },
-        {
-          model: Attachment,
-          as: "profileImage",
-          attributes: ["filePath", "fileUniqueName"],
-        },
-        [
+    const user = await this._userService.findOne(
+      request,
+      {
+        email: payload.email.toLowerCase(),
+        role: {
+          [Op.in]: [USER_ROLES.SUPER_ADMIN, USER_ROLES.MANAGER, USER_ROLES.STAFF]
+        }
+      },
+      {
+        include: [
+          {
+            model: Attachment,
+            as: "profileImage",
+            attributes: ["filePath", "fileUniqueName"],
+          },
+        ],
+        attributes: [
           "firstName",
           "lastName",
           "password",
@@ -62,60 +69,41 @@ export class AuthService {
           "email",
           "registrationStatus",
           "role",
-          "preferredLanguage",
         ],
-      );
+      },
+    );
 
-      if (!user) {
-        return this._globalResponses.formatResponse(
-          request,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "invalid_user_credentials",
-        );
-      }
-
-      const match = await this._sharedAuthService.comparePassword(
-        payload.password,
-        user?.password ?? "",
-      );
-
-      if (!match) {
-        return this._globalResponses.formatResponse(
-          request,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "invalid_user_credentials",
-        );
-      }
-
-      const result = user["dataValues"];
-      delete result.password;
-
-      const token = await this._sharedAuthService.createToken(
-        request,
-        user.id,
-        user.email,
-        user.role,
-        payload.rememberMe,
-        user.preferredLanguage,
-      );
-
-      return this._globalResponses.formatResponse(
-        request,
-        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-        { token: token, user: result },
-        "user_login",
-      );
-    } catch (error) {
-      // TODO:high: Pass error to formatResponse function.
-      console.error(error);
-      return this._globalResponses.formatResponse(
-        request,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
-      );
+    if (!user) {
+      const error = new Error("invalid_user_credentials");
+      throw error;
     }
+
+    const match = await this._sharedAuthService.comparePassword(
+      payload.password,
+      user?.password ?? "",
+    );
+
+    if (!match) {
+      const error = new Error("invalid_user_credentials");
+      throw error;
+    }
+
+    const result = user["dataValues"];
+    delete result.password;
+
+    const token = await this._sharedAuthService.createToken(
+      request,
+      user.id,
+      user.email,
+      user.role,
+      payload.rememberMe,
+    );
+
+    return this._globalResponses.formatResponse(
+      request,
+      RESPONSE_STATUSES.SUCCESS,
+      { token: token, user: result },
+      "user_login",
+    );
   }
 }

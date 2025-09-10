@@ -9,11 +9,10 @@ import { DatabaseModule } from "./core/providers/database.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { WebAppModule } from "./modules/app/webApp.module";
 import { CronModule } from "./modules/cron/cron.module";
-import { ImageModule } from "./modules/image/image.module";
+import { MediaModule } from "./modules/media/media.module";
 import { MailModule } from "./modules/mail/mail.module";
 import { CacheModule } from "./modules/shared/cache/cache.module";
 import { SharedModule } from "./modules/shared/shared.module";
-
 /**
  * Loads environment variables from a .env file into the application's environment.
  *
@@ -40,7 +39,7 @@ dotenv.config();
     forwardRef(() => SharedModule),
     forwardRef(() => DatabaseModule),
     forwardRef(() => MailModule),
-    forwardRef(() => ImageModule),
+    forwardRef(() => MediaModule),
     forwardRef(() => CronModule),
   ],
   controllers: [AppController],

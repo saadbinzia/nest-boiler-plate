@@ -5,6 +5,7 @@ import { GlobalEnums } from "src/core/config/globalEnums";
 import { UserSessionService } from "./userSession/userSession.service";
 import * as bcrypt from "bcrypt";
 
+const { SESSION_STATUS } = GlobalEnums;
 @Injectable()
 export class SharedAuthService {
   constructor(
@@ -54,25 +55,27 @@ export class SharedAuthService {
     userEmail: string,
     role: string,
     rememberMe: boolean = false,
-    preferredLanguage: string = "en",
   ): Promise<string> {
     const token = await this.generateToken({
       id: userId,
       email: userEmail,
       role,
-      preferredLanguage: preferredLanguage,
     });
     await this._userSessionService.createSession(req, {
       userId: userId,
       authToken: token,
       rememberMe: rememberMe,
-      status: GlobalEnums.USER_SESSION_STATUS.ACTIVE,
+      status: SESSION_STATUS.ACTIVE,
       publicIp: req?.headers["origin"] ? req.headers["origin"] : "",
       browser: req?.headers["user-agent"]
-        ? req.headers["user-agent"]
+        ? Array.isArray(req.headers["user-agent"])
+          ? req.headers["user-agent"][0]
+          : req.headers["user-agent"]
         : "Unknown Browser",
       operatingSystem: req?.headers["sec-ch-ua-platform"]
-        ? req.headers["sec-ch-ua-platform"]
+        ? Array.isArray(req.headers["sec-ch-ua-platform"])
+          ? req.headers["sec-ch-ua-platform"][0]
+          : req.headers["sec-ch-ua-platform"]
         : "",
     });
 

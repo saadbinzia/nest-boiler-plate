@@ -9,11 +9,11 @@ export const databaseProvider = [
     useFactory: async (configService: ConfigService) => {
       const sequelize = new Sequelize({
         dialect: "postgres",
-        username: configService.get("DB_USER"),
+        username: configService.get("DB_USERNAME"),
         password: configService.get("DB_PASSWORD"),
         host: configService.get("DB_HOST"),
         port: configService.get("DB_PORT"),
-        database: configService.get("DB"),
+        database: configService.get("DB_NAME"),
       });
       sequelize.addModels(entities);
       // NOTE: Do not enable this as per we are using migrations and don't want to syncs usign model first.

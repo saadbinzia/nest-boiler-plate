@@ -8,7 +8,6 @@ import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./jwt.strategy";
 import { LocalStrategy } from "./local.strategy";
-import { SocialLoginService } from "./socialLogin/socialLogin.service";
 import { AttachmentModule } from "src/modules/shared/attachment/attachment.module";
 import { UserSessionService } from "src/modules/shared/auth/userSession/userSession.service";
 import { SharedAuthService } from "src/modules/shared/auth/auth.service";
@@ -36,14 +35,13 @@ import { SharedAuthService } from "src/modules/shared/auth/auth.service";
     GlobalResponses,
     HelperService,
     UserSessionService,
-    SocialLoginService,
   ],
   exports: [
     AuthService,
     PassportModule,
     JwtModule,
     UserSessionService,
-    SocialLoginService,
+    HelperService,
   ],
 })
 export class AuthModule {}

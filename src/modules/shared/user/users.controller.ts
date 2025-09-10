@@ -33,7 +33,6 @@ import {
   UnprocessableResponse,
 } from "src/core/config/interface/swaggerResponse.dto";
 import { JwtAuthGuard } from "src/core/guards/jwt-auth.guard";
-import { VerificationCodeTypeEnum } from "../auth/userVerificationCode/interface/userVerificationCode.interface";
 import {
   ChangeUserPasswordDTO,
   ResendCodeDTO,
@@ -43,8 +42,9 @@ import {
 import { ForgetPasswordService } from "./forgetPassword/forgetPassword.service";
 import { UserService } from "./user.service";
 
-@ApiTags("APIs combined for user")
-@Controller("users")
+const { VERIFICATION_CODE_TYPE, RESPONSE_STATUSES } = GlobalEnums;
+@ApiTags("APIs for all user")
+@Controller("shared/users")
 export class UsersController {
   constructor(
     private readonly _userService: UserService,
@@ -84,20 +84,20 @@ export class UsersController {
   async find(
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userService.find(req);
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
 
-      return res.status(response.statusCode).json(response);
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -140,24 +140,24 @@ export class UsersController {
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
     @Body() payload: UpdateUserDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userService.updateUser(
         req,
         req.user.id,
         payload,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
 
-      return res.status(response.statusCode).json(response);
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -213,24 +213,24 @@ export class UsersController {
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
     @Body() payload: ChangeUserPasswordDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userService.changePassword(
         req,
         req.user.id,
         payload,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
 
-      return res.status(response.statusCode).json(response);
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -240,7 +240,7 @@ export class UsersController {
    * @param {Request} req - request
    * @param {Res} res - response
    * @param {ResendCodeDTO} body - the user's email
-   * @return {Promise<object>} a promise representing the result of resending the code
+   * @return {Promise<void>} a promise representing the result of resending the code
    */
   @ApiOperation({
     summary: "Request rigistration code",
@@ -278,23 +278,23 @@ export class UsersController {
     @Req() req: Request,
     @Res() res: Response,
     @Body() body: ResendCodeDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userService.resendRegistrationCode(
         req,
         body,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
 
-      return res.status(response.statusCode).json(response);
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -342,23 +342,24 @@ export class UsersController {
     @Res() res: Response,
     @Req() req: Request,
     @Body() body: VerifyResetPasswordCodeDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.verifyCode(
         req,
         body,
-        VerificationCodeTypeEnum.REGISTRATION,
+        VERIFICATION_CODE_TYPE.REGISTRATION,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -399,28 +400,29 @@ export class UsersController {
     @Res() res: Response,
     @Req() req: Request,
     @Param("uuid") uuid: string,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.verifyUUId(
         req,
         uuid,
-        VerificationCodeTypeEnum.REGISTRATION,
+        VERIFICATION_CODE_TYPE.REGISTRATION,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor("file"))
+  @UseInterceptors(FileInterceptor("profileImage"))
   @Put("upload-profile-image")
   @ApiBearerAuth("access-token")
   @ApiOperation({
@@ -458,19 +460,19 @@ export class UsersController {
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,
     @UploadedFile() file: Express.Multer.File,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
-      return res.json(await this._userService.uploadImage(req, file));
+      res.json(await this._userService.uploadImage(req, file));
     } catch (error) {
       console.error(error);
-      return res.json(
-        this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        ),
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -499,19 +501,19 @@ export class UsersController {
   async deleteImage(
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
-      return res.json(await this._userService.deleteImage(req));
+      res.json(await this._userService.deleteImage(req));
     } catch (error) {
       console.error(error);
-      return res.json(
-        this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        ),
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 }

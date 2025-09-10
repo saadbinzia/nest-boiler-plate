@@ -1,16 +1,17 @@
 import { Controller, Get, Query, Req, Res } from "@nestjs/common";
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Request, Response } from "express";
 import { GlobalEnums } from "src/core/config/globalEnums";
 import GlobalResponses from "src/core/config/GlobalResponses";
-import { CronService } from "./cron.service";
-import { CronDTO } from "./dto/cron.dto";
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
   ErrorResponse,
   SuccessResponse,
   UnprocessableResponse,
 } from "src/core/config/interface/swaggerResponse.dto";
+import { CronService } from "./cron.service";
+import { CronDTO } from "./dto/cron.dto";
 
+const { RESPONSE_STATUSES } = GlobalEnums;
 @ApiTags("Crons (Not configured yet)")
 @Controller("crons")
 export class CronsController {
@@ -55,27 +56,29 @@ export class CronsController {
     @Req() req: Request,
     @Res() res: Response,
     @Query() query: CronDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response =
         query?.key === process.env["CRON_KEY"]
           ? await this._cronService.hourlyCron(req)
           : this._globalResponses.formatResponse(
               req,
-              GlobalEnums.RESPONSE_STATUSES.ERROR,
+              RESPONSE_STATUSES.ERROR,
               null,
               "invalid_cron_key",
             );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
+
 }

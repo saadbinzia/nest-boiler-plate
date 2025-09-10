@@ -28,6 +28,6 @@ export interface ReplaceValues {
 export interface ApiResponse {
   statusCode: number;
   status: string;
-  message: Array<string>;
+  message: string;
   data: any;
 }

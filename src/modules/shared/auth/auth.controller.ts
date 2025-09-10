@@ -18,8 +18,9 @@ import {
 import { JwtAuthGuard } from "src/core/guards/jwt-auth.guard";
 import { UserSessionService } from "./userSession/userSession.service";
 
-@ApiTags("Auth for simple user")
-@Controller("auth")
+const { RESPONSE_STATUSES } = GlobalEnums;
+@ApiTags("Auth for all users")
+@Controller("shared/auth")
 export class AuthController {
   constructor(
     private readonly _userSessionService: UserSessionService,
@@ -58,19 +59,19 @@ export class AuthController {
   async logoutSession(
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userSessionService.logoutSession(req);
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
-      console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -106,22 +107,23 @@ export class AuthController {
   async logoutAllSessions(
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userSessionService.logoutAllSessions(
         req,
         req.user.id,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -157,22 +159,23 @@ export class AuthController {
   async getActiveInstances(
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userSessionService.getActiveInstances(
         req,
         req.user.id,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -215,23 +218,24 @@ export class AuthController {
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
     @Param() param,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userSessionService.logoutSpecificSession(
         req,
         param.sessionId,
       );
 
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
       console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 }

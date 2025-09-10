@@ -10,8 +10,9 @@ import { Request } from "express";
 import { CacheService } from "src/modules/shared/cache/cache.service";
 import { ApiResponse } from "src/core/config/interface/globalResponses.interface";
 
+const { RESPONSE_STATUSES, SESSION_STATUS } = GlobalEnums;
 @Injectable()
-export class UserSessionService extends BaseService {
+export class UserSessionService extends BaseService<UserSession> {
   constructor(
     private _globalResponses: GlobalResponses,
     private _helperService: HelperService,
@@ -31,29 +32,23 @@ export class UserSessionService extends BaseService {
     req: Request,
     payload: UserSessionDTO,
   ): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
-      req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
-    );
+    try {
+      // Transform DTO to plain object if needed (optional with class-transformer)
 
-    const userSession = await this.create(payload);
+      // Create session using Sequelize
+      await this.create(req, payload as any);
 
-    response = userSession
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          null,
-          "session_created",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        );
-    return response;
+      return this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.SUCCESS,
+        null,
+        "session_created",
+      );
+    } catch (error) {
+      // Optional: log or rethrow error
+      console.error("Session creation failed:", error);
+      throw error;
+    }
   }
 
   /**
@@ -63,39 +58,28 @@ export class UserSessionService extends BaseService {
    * @returns {Promise<ApiResponse>}
    */
   async logoutSession(req: AuthenticatedRequest): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
-      req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
-    );
-
     const token = this._helperService.extractTokenFromHeader(req);
 
-    const expireSession = await this.updateOne(
+    const expireSession = await this.update(
+      req,
       { authToken: token, userId: req.user.id },
       {
-        status: GlobalEnums.USER_SESSION_STATUS.EXPIRED,
+        status: SESSION_STATUS.EXPIRED,
       },
     );
 
     await this._cacheService.deleteSession(token);
 
-    response = expireSession
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          null,
-          "logout_from_device",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        );
+    if (!expireSession) {
+      throw new Error("session_not_found");
+    }
 
-    return response;
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      null,
+      "logout_from_device",
+    );
   }
 
   /**
@@ -109,54 +93,48 @@ export class UserSessionService extends BaseService {
     req: AuthenticatedRequest | Request,
     userId: number,
   ): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
-      req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
-    );
-
-    const userSession = await this.findAll({
+    const userSession = await this.findAll(req, {
       userId: userId,
-      status: GlobalEnums.USER_SESSION_STATUS.ACTIVE,
+      status: SESSION_STATUS.ACTIVE,
     });
 
     if (userSession && userSession.length) {
       for (let index = 0; index < userSession.length; index++) {
         const element = userSession[index];
-        await this.updateById(element.id, {
-          status: GlobalEnums.USER_SESSION_STATUS.EXPIRED,
+        await this.updateById(req, element.id, {
+          status: SESSION_STATUS.EXPIRED,
         });
 
         await this._cacheService.deleteSession(element.authToken);
       }
 
-      response = this._globalResponses.formatResponse(
+      return this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.SUCCESS,
+        RESPONSE_STATUSES.SUCCESS,
         null,
         "logout_from_all_devices",
       );
-    } else {
-      response = this._globalResponses.formatResponse(
-        req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        {},
-        "device_not_found",
-      );
     }
 
-    return response;
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      null,
+      "logout_from_all_devices",
+    );
   }
 
   /**
    * find session
    * @description Used to find session record.
    * @param {String} token
-   * @returns {Promise<ApiResponse>}
+   * @returns {Promise<UserSession>}
    */
-  async findSession(token: string): Promise<ApiResponse> {
-    return await this.findOne({ authToken: token });
+  async findSession(
+    req: AuthenticatedRequest,
+    token: string,
+  ): Promise<UserSession> {
+    return await this.findOne(req, { authToken: token });
   }
 
   /**
@@ -171,34 +149,32 @@ export class UserSessionService extends BaseService {
     userId: number,
   ): Promise<ApiResponse> {
     const activeSessions = await this.findAll(
-      { userId: userId, status: GlobalEnums.USER_SESSION_STATUS.ACTIVE },
-      null,
-      ["id", "authToken", "browser", "publicIp", "operatingSystem"],
-      [["id", "DESC"]],
+      req,
+      { userId: userId, status: SESSION_STATUS.ACTIVE },
+      {
+        attributes: [
+          "id",
+          "authToken",
+          "browser",
+          "publicIp",
+          "operatingSystem",
+        ],
+        order: [["id", "DESC"]],
+      },
     );
 
-    for (let index = 0; index < activeSessions.length; index++) {
-      const activeSession = activeSessions[index];
-
-      const token = this._helperService.extractTokenFromHeader(req);
-
-      activeSession.dataValues.isCurrent = activeSession.authToken === token;
-      delete activeSession.dataValues.authToken;
+    if (activeSessions.length) {
+      return this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.SUCCESS,
+        activeSessions,
+        "active_sessions_found",
+      );
+    } else {
+      const error = new Error("no_active_session");
+      error.name = "NotFoundError";
+      throw error;
     }
-
-    return activeSessions.length
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          activeSessions,
-          "active_sessions_found",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          "no_active_session",
-        );
   }
 
   /**
@@ -212,38 +188,29 @@ export class UserSessionService extends BaseService {
     req: AuthenticatedRequest,
     sessionId: number,
   ): Promise<ApiResponse> {
-    let response = this._globalResponses.formatResponse(
+    const session = await this.findOneById(req, sessionId);
+
+    const expireSession = await this.update(
       req,
-      GlobalEnums.RESPONSE_STATUSES.ERROR,
-      null,
-      null,
-    );
-
-    const session = await this.findOneById(sessionId);
-
-    const expireSession = await this.updateOne(
       { id: sessionId },
       {
-        status: GlobalEnums.USER_SESSION_STATUS.EXPIRED,
+        status: SESSION_STATUS.EXPIRED,
       },
     );
 
     await this._cacheService.deleteSession(session.authToken);
 
-    response = expireSession
-      ? this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.SUCCESS,
-          null,
-          "logout_from_device",
-        )
-      : this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        );
+    if (!expireSession) {
+      const error = new Error("session_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
 
-    return response;
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      null,
+      "logout_from_device",
+    );
   }
 }

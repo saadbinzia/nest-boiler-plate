@@ -3,7 +3,6 @@ import {
   IsBoolean,
   IsEmail,
   IsNotEmpty,
-  IsOptional,
   Matches,
   MaxLength,
   MinLength,
@@ -41,9 +40,6 @@ export class UserDTO {
   })
   readonly password?: string;
 
-  @IsNotEmpty({ message: "Keep user updated field should not be empty" })
-  readonly keepUserUpdated: boolean;
-
   @IsNotEmpty({
     message: "Agree to terms and conditions field should not be empty",
   })
@@ -52,10 +48,4 @@ export class UserDTO {
     message: "You must agree to the terms and conditions",
   })
   readonly agreeTermsAndConditions: boolean;
-
-  @IsOptional()
-  readonly referralUser: string;
-
-  @IsOptional()
-  readonly preferredLanguage: string;
 }

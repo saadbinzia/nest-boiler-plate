@@ -46,6 +46,11 @@ const spanishTranslations = {
     // User Profile Settings
     image_uploaded: "Image uploaded successfully.",
     image_deleted: "Image deleted successfully.",
+    subscription_cancelled:
+      "Your subscription has been cancelled successfully.",
+    subscription_updated: "Your subscription has been updated successfully",
+    plan_created: "New subscription plan has been created.",
+    subscription_upgraded: "Your subscription has been upgraded successfully",
   },
   error: {
     // General messages
@@ -61,10 +66,12 @@ const spanishTranslations = {
 
     // Auth messages
     invalid_user_credentials: "Invalid credentials provided.",
+    email_not_registered: "Email not registered. Please register to proceed.",
     invalid_user_details: "Invalid details provided.",
     device_not_found: "Device not found.",
     forgot_code_expired: "The code expired.",
     invalid_forgot_code: "Invalid code provided.",
+    code_already_verified: "Code already verified.",
 
     // User message
     user_not_found: "User not found.",
@@ -96,8 +103,30 @@ const spanishTranslations = {
     attachment_not_created: "Attachment creation failed.",
     attachment_not_deleted: "Attachment deletion failed.",
     attachment_not_found: "Attachment not found.",
-
     one_or_more_email_invalid: "One or more email is invalid.",
+    file_type_not_supported: "File type not supported.",
+    file_not_uploaded: "File not uploaded.",
+    user_not_verified: "User is not verified.",
+    channel_with_title_exists: "Channel with this title already exists.",
+    channel_not_found: "The specified channel does not exists.",
+    file_type_not_image: "File should be image.",
+    file_size_exceeds: "File size exceeds",
+    code_not_provided: "Either code or uuid must be provided",
+    video_already_linked:
+      "This video is already linked to the selected channel.",
+    file_type_not_mp4: "File should be mp4.",
+    stripe_issue:
+      "We're experiencing issues processing your payment right now. Please try again in a few minutes",
+    no_subscription_found: "No active subscription has been found.",
+    stripe_change_plan_issue:
+      "We're experiencing issues with stripe. Try again later.",
+    stripe_unavailable:
+      "We're experiencing issues with stripe. Try again later.",
+    playlist_with_title_exists: "Playlist with this title already exists.",
+    playlist_not_found: "The specified playlist does not exists.",
+    proration_invoice_unpaid: "Your plan upgrade was not successful.",
+    video_url_not_found: "Video url not found.",
+    download_failed: "Download failed.",
   },
   unVerifiedUser: {
     user_not_verified: "User is not verified.",

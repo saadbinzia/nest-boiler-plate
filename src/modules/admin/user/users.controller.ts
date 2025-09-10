@@ -38,6 +38,7 @@ import { JwtAuthGuard } from "src/core/guards/jwt-auth.guard";
 import { UpdateUserDTO, UserDTO } from "./dto";
 import { UserService } from "./user.service";
 
+const { USER_ROLES, RESPONSE_STATUSES } = GlobalEnums;
 @ApiTags("Admin Users")
 @Controller("admin/users")
 export class UsersController {
@@ -55,7 +56,7 @@ export class UsersController {
    */
   @Post("create-user")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(GlobalEnums.USER_ROLES.SUPER_ADMIN)
+  @Roles(USER_ROLES.SUPER_ADMIN)
   @ApiBearerAuth("access-token")
   @ApiOperation({
     summary: "User Sign Up",
@@ -88,7 +89,6 @@ export class UsersController {
           lastName: "Bin Zia",
           phoneNumber: "+923034197551",
           password: "P@ss2word",
-          keepUserUpdated: true,
           agreeTermsAndConditions: true,
         },
       },
@@ -100,22 +100,7 @@ export class UsersController {
           lastName: "Bin Zia",
           phoneNumber: "+923034197551",
           password: "pass2word",
-          keepUserUpdated: true,
           agreeTermsAndConditions: true,
-        },
-      },
-      c: {
-        summary: "Sample with referral user and preferred language",
-        value: {
-          email: "saadbinzia055@gmail.com",
-          firstName: "Saad",
-          lastName: "Bin Zia",
-          phoneNumber: "+923034197551",
-          password: "P@ss2word",
-          keepUserUpdated: true,
-          agreeTermsAndConditions: true,
-          referralUser: "username",
-          preferredLanguage: "en",
         },
       },
     },
@@ -124,23 +109,23 @@ export class UsersController {
     @Res() res: Response,
     @Req() req: Request,
     @Body() body: UserDTO,
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userService.createUser(
         req,
         body,
-        GlobalEnums.USER_ROLES.USER,
+        USER_ROLES.USER,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
-      console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
-      return res.status(response.statusCode).json(response);
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -154,7 +139,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get("find-user-by-id/:userId")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(GlobalEnums.USER_ROLES.SUPER_ADMIN)
+  @Roles(USER_ROLES.SUPER_ADMIN)
   @ApiBearerAuth("access-token")
   @ApiParam({
     name: "userId",
@@ -186,20 +171,19 @@ export class UsersController {
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
     @Param() { userId }: { userId: string },
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userService.find(req, +userId);
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
-      console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
 
-      return res.status(response.statusCode).json(response);
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -215,7 +199,7 @@ export class UsersController {
   @Put("update-user-by-id/:userId")
   @Get("find-user-by-id/:userId")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(GlobalEnums.USER_ROLES.SUPER_ADMIN)
+  @Roles(USER_ROLES.SUPER_ADMIN)
   @ApiBearerAuth("access-token")
   @ApiParam({
     name: "userId",
@@ -253,24 +237,23 @@ export class UsersController {
     @Req() req: AuthenticatedRequest,
     @Body() payload: UpdateUserDTO,
     @Param() { userId }: { userId: string },
-  ): Promise<object> {
+  ): Promise<void> {
     try {
       const response = await this._userService.updateUser(
         req,
         +userId,
         payload,
       );
-      return res.status(response.statusCode).json(response);
+      res.status(response.statusCode).json(response);
     } catch (error) {
-      console.error(error);
-      const response = this._globalResponses.formatResponse(
+      const errorResponse = this._globalResponses.formatResponse(
         req,
-        GlobalEnums.RESPONSE_STATUSES.ERROR,
-        null,
-        null,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
 
-      return res.status(response.statusCode).json(response);
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
@@ -278,7 +261,7 @@ export class UsersController {
   @Put("upload-profile-image-by-id/:userId")
   @Get("find-user-by-id/:userId")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(GlobalEnums.USER_ROLES.SUPER_ADMIN)
+  @Roles(USER_ROLES.SUPER_ADMIN)
   @ApiBearerAuth("access-token")
   @ApiParam({
     name: "userId",
@@ -322,26 +305,25 @@ export class UsersController {
     @Res() res: Response,
     @UploadedFile() file: Express.Multer.File,
     @Param() { userId }: { userId: string },
-  ): Promise<object> {
+  ): Promise<void> {
     try {
-      return res.json(await this._userService.uploadImage(req, file, +userId));
+      res.json(await this._userService.uploadImage(req, file, +userId));
     } catch (error) {
-      console.error(error);
-      return res.json(
-        this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        ),
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 
   @Delete("delete-profile-image-by-id/:userId")
   @Get("find-user-by-id/:userId")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(GlobalEnums.USER_ROLES.SUPER_ADMIN)
+  @Roles(USER_ROLES.SUPER_ADMIN)
   @ApiBearerAuth("access-token")
   @ApiParam({
     name: "userId",
@@ -372,19 +354,18 @@ export class UsersController {
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,
     @Param() { userId }: { userId: string },
-  ): Promise<object> {
+  ): Promise<void> {
     try {
-      return res.json(await this._userService.deleteImage(req, +userId));
+      res.json(await this._userService.deleteImage(req, +userId));
     } catch (error) {
-      console.error(error);
-      return res.json(
-        this._globalResponses.formatResponse(
-          req,
-          GlobalEnums.RESPONSE_STATUSES.ERROR,
-          null,
-          null,
-        ),
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
       );
+
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
 }

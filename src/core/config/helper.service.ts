@@ -122,6 +122,54 @@ export class HelperService {
   }
 
   /**
+   * This function is used to resize the image buffer and return a buffer
+   * @param {Buffer} buffer
+   * @param {number} width
+   * @param {number} height
+   * @param {number} quality
+   * @param {boolean} keepRatio
+   * @returns {Promise<Buffer>}
+   */
+  async resizeImageBuffer(
+    buffer: Buffer,
+    width: number,
+    height: number,
+    quality: number = 60,
+    keepRatio: boolean = false,
+  ): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      Jimp.read(buffer, (err: any, img: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        let width2 = width;
+        let height2 = height;
+
+        if (keepRatio) {
+          const w = img.bitmap.width;
+          const h = img.bitmap.height;
+          const r = this.calculateAspectRatioFit(w, h, width, height);
+          width2 = r.width;
+          height2 = r.height;
+        }
+
+        img
+          .resize(width2, height2)
+          .quality(quality)
+          .getBufferAsync(Jimp.AUTO)
+          .then((resizedBuffer: Buffer) => {
+            resolve(resizedBuffer);
+          })
+          .catch((error: any) => {
+            reject(error);
+          });
+      });
+    });
+  }
+
+  /**
    * Calculate the aspect ratio
    * @param {number} srcWidth
    * @param {number} srcHeight

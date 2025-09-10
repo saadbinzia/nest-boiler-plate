@@ -10,7 +10,9 @@ import { GlobalEnums } from "src/core/config/globalEnums";
 import { HelperService } from "src/core/config/helper.service";
 import { CacheService } from "src/modules/shared/cache/cache.service";
 import { UserSessionService } from "src/modules/shared/auth/userSession/userSession.service";
+import { AuthenticatedRequest } from "../config/interface/request.interface";
 
+const { SESSION_STATUS } = GlobalEnums;
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
@@ -39,7 +41,7 @@ export class JwtAuthGuard implements CanActivate {
       });
 
       // Verify session (active OR expired)
-      const sessionResult = await this.verifySession(token);
+      const sessionResult = await this.verifySession(request, token);
 
       if (sessionResult) {
         // 💡 We're assigning the payload to the request object here
@@ -49,7 +51,6 @@ export class JwtAuthGuard implements CanActivate {
         throw { data: "sessionExpired" };
       }
     } catch (error) {
-      console.error(error);
       if (error && error.data === "sessionExpired") {
         throw new HttpException("Session is expired", 401);
       } else {
@@ -62,16 +63,17 @@ export class JwtAuthGuard implements CanActivate {
   /**
    * Verify session
    * @description Check that user is active or expired
+   * @param {AuthenticatedRequest} request
    * @param {String} token
    * @returns {Promise<boolean>}
    */
-  private async verifySession(token: string): Promise<boolean> {
+  private async verifySession(
+    request: AuthenticatedRequest,
+    token: string,
+  ): Promise<boolean> {
     const cashedUserJson = await this._cacheService.getSession(token);
 
-    if (
-      cashedUserJson &&
-      cashedUserJson.status === GlobalEnums.USER_SESSION_STATUS.ACTIVE
-    ) {
+    if (cashedUserJson && cashedUserJson.status === SESSION_STATUS.ACTIVE) {
       if (cashedUserJson.rememberMe) {
         return true;
       } else {
@@ -90,11 +92,11 @@ export class JwtAuthGuard implements CanActivate {
         }
       }
     } else {
-      const session: any = await this._userSession.findSession(token);
+      const session: any = await this._userSession.findSession(request, token);
 
       if (
         session?.dataValues.status &&
-        session.dataValues.status === GlobalEnums.USER_SESSION_STATUS.ACTIVE
+        session.dataValues.status === SESSION_STATUS.ACTIVE
       ) {
         // Update Cache
 
