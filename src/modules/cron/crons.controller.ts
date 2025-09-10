@@ -80,5 +80,4 @@ export class CronsController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
-
 }

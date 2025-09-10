@@ -1,6 +1,4 @@
-import {
-  Controller
-} from "@nestjs/common";
+import { Controller } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { WebhookService } from "./webhook.service";
 
@@ -8,5 +6,4 @@ import { WebhookService } from "./webhook.service";
 @Controller("ebhooks")
 export class WebhooksController {
   constructor(private readonly _webhookService: WebhookService) {}
-
 }

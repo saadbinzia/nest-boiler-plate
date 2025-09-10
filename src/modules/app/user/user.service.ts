@@ -10,8 +10,7 @@ import { Request } from "express";
  */
 @Injectable()
 export class UserService extends BaseService<User> {
-  constructor(
-  ) {
+  constructor() {
     super(User);
   }
 

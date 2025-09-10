@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Logger,
-  Post,
-  Req,
-  Res,
-} from "@nestjs/common";
+import { Body, Controller, Logger, Post, Req, Res } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Request, Response } from "express";
 import { GlobalEnums } from "src/core/config/globalEnums";
@@ -109,5 +102,4 @@ export class AuthController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
-
 }

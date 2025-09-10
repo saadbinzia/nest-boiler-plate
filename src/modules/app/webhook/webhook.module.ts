@@ -7,11 +7,7 @@ import GlobalResponses from "src/core/config/GlobalResponses";
 @Module({
   imports: [],
   controllers: [WebhooksController],
-  providers: [
-    WebhookService,
-    HelperService,
-    GlobalResponses,
-  ],
+  providers: [WebhookService, HelperService, GlobalResponses],
   exports: [WebhookService],
 })
 export class WebhookModule {}

@@ -209,7 +209,6 @@ export class User extends Model<User> {
   })
   profileImage: Attachment;
 
-
   // ====================== VIRTUAL FIELDS ======================
 
   get fullName(): string {
