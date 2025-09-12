@@ -35,7 +35,7 @@ import {
 import { Roles } from "src/core/decorators/role-decorator";
 import { RolesGuard } from "src/core/guards/checkRole.guard";
 import { JwtAuthGuard } from "src/core/guards/jwt-auth.guard";
-import { UpdateUserDTO, UserDTO } from "./dto";
+import { AdminUpdateUserDTO, UserDTO } from "./dto";
 import { UserService } from "./user.service";
 
 const { USER_ROLES, RESPONSE_STATUSES } = GlobalEnums;
@@ -89,7 +89,6 @@ export class UsersController {
           lastName: "Bin Zia",
           phoneNumber: "+923034197551",
           password: "P@ss2word",
-          agreeTermsAndConditions: true,
         },
       },
       b: {
@@ -100,7 +99,6 @@ export class UsersController {
           lastName: "Bin Zia",
           phoneNumber: "+923034197551",
           password: "pass2word",
-          agreeTermsAndConditions: true,
         },
       },
     },
@@ -231,11 +229,38 @@ export class UsersController {
     description: "Some kind of error",
     type: ErrorResponse,
   })
+  @ApiBody({
+    description: 'Fields allowed to update',
+    type: AdminUpdateUserDTO,
+    examples: {
+      valid: {
+        summary: 'Valid update payload',
+        value: {
+          firstName: 'Test',
+          lastName: 'Dev',
+          phoneNumber: '+923034197551',
+        },
+      },
+      invalidName: {
+        summary: 'Invalid name (contains digits)',
+        value: {
+          firstName: 'T3st',
+          lastName: 'Dev1',
+        },
+      },
+      invalidPhone: {
+        summary: 'Invalid phone format',
+        value: {
+          phoneNumber: '12345',
+        },
+      },
+    },
+  })
   @ApiBearerAuth("access-token")
   async updateUser(
     @Res() res: Response,
     @Req() req: AuthenticatedRequest,
-    @Body() payload: UpdateUserDTO,
+    @Body() payload: AdminUpdateUserDTO,
     @Param() { userId }: { userId: string },
   ): Promise<void> {
     try {

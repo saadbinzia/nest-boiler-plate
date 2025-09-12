@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Req, Res } from "@nestjs/common";
 import { Request } from "express";
 import { AuthService } from "./auth.service";
-import { AuthDto } from "./dto/auth.dto";
+import { AdminAuthDto } from "./dto/auth.dto";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
   ErrorResponse,
@@ -43,7 +43,7 @@ export class AuthController {
   })
   @ApiBody({
     description: "Create User Account",
-    type: AuthDto,
+    type: AdminAuthDto,
     examples: {
       a: {
         summary: "Sample that return No Error",
@@ -56,7 +56,7 @@ export class AuthController {
     },
   })
   async login(
-    @Body() body: AuthDto,
+    @Body() body: AdminAuthDto,
     @Req() req: Request,
     @Res() res,
   ): Promise<void> {

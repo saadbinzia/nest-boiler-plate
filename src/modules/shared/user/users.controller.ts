@@ -37,7 +37,7 @@ import {
   ChangeUserPasswordDTO,
   ResendCodeDTO,
   UpdateUserDTO,
-  VerifyResetPasswordCodeDTO,
+  SharedVerifyResetPasswordCodeDTO,
 } from "./dto";
 import { ForgetPasswordService } from "./forgetPassword/forgetPassword.service";
 import { UserService } from "./user.service";
@@ -134,6 +134,33 @@ export class UsersController {
     status: 400,
     description: "Some kind of error",
     type: ErrorResponse,
+  })
+  @ApiBody({
+    description: 'Fields allowed to update for the current authenticated user',
+    type: UpdateUserDTO,
+    examples: {
+      valid: {
+        summary: 'Valid update payload',
+        value: {
+          firstName: 'John',
+          lastName: 'Doe',
+          phoneNumber: '+923001234567',
+        },
+      },
+      invalidName: {
+        summary: 'Invalid name (contains numbers)',
+        value: {
+          firstName: 'J0hn',
+          lastName: 'Doe1',
+        },
+      },
+      invalidPhone: {
+        summary: 'Invalid phone format',
+        value: {
+          phoneNumber: '12345',
+        },
+      },
+    },
   })
   @ApiBearerAuth("access-token")
   async updateUser(
@@ -327,7 +354,7 @@ export class UsersController {
   })
   @ApiBody({
     description: "Verify rigistration code",
-    type: VerifyResetPasswordCodeDTO,
+    type: SharedVerifyResetPasswordCodeDTO,
     examples: {
       a: {
         summary: "Sample for rigistration",
@@ -341,7 +368,7 @@ export class UsersController {
   async verifyCode(
     @Res() res: Response,
     @Req() req: Request,
-    @Body() body: VerifyResetPasswordCodeDTO,
+    @Body() body: SharedVerifyResetPasswordCodeDTO,
   ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.verifyCode(
@@ -422,7 +449,7 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor("profileImage"))
+  @UseInterceptors(FileInterceptor("file"))
   @Put("upload-profile-image")
   @ApiBearerAuth("access-token")
   @ApiOperation({

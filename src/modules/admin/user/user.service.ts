@@ -4,7 +4,7 @@ import { GlobalEnums } from "src/core/config/globalEnums";
 import GlobalResponses from "src/core/config/GlobalResponses";
 import { ApiResponse } from "src/core/config/interface/globalResponses.interface";
 import { Attachment, User } from "src/entities";
-import { UpdateUserDTO, UserDTO } from "./dto";
+import { AdminUpdateUserDTO, UserDTO } from "./dto";
 
 import * as bcrypt from "bcrypt";
 import { Request } from "express";
@@ -140,7 +140,7 @@ export class UserService extends BaseService<User> {
   async updateUser(
     req: Request,
     id: number,
-    payload: UpdateUserDTO,
+    payload: AdminUpdateUserDTO,
   ): Promise<ApiResponse> {
     const user = await this.update(req, { id: id }, payload);
 

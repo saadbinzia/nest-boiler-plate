@@ -12,9 +12,9 @@ import { Request, Response } from "express";
 import { GlobalEnums } from "src/core/config/globalEnums";
 import GlobalResponses from "src/core/config/GlobalResponses";
 import {
-  ForgetPasswordDTO,
-  ResetPasswordDTO,
-  VerifyResetPasswordCodeDTO,
+  SharedForgetPasswordDTO,
+  SharedResetPasswordDTO,
+  SharedVerifyResetPasswordCodeDTO,
 } from "../dto";
 import { ForgetPasswordService } from "./forgetPassword.service";
 import {
@@ -70,7 +70,7 @@ export class ForgetPasswordsController {
   })
   @ApiBody({
     description: "Request reset password",
-    type: ForgetPasswordDTO,
+    type: SharedForgetPasswordDTO,
     examples: {
       a: {
         summary: "Sample request reset password",
@@ -83,7 +83,7 @@ export class ForgetPasswordsController {
   async sendResetEmail(
     @Res() res: Response,
     @Req() req: Request,
-    @Body() body: ForgetPasswordDTO,
+    @Body() body: SharedForgetPasswordDTO,
   ): Promise<void> {
     try {
       const response =
@@ -134,7 +134,7 @@ export class ForgetPasswordsController {
   })
   @ApiBody({
     description: "Request reset password",
-    type: ForgetPasswordDTO,
+    type: SharedForgetPasswordDTO,
     examples: {
       a: {
         summary: "Sample request reset password",
@@ -147,7 +147,7 @@ export class ForgetPasswordsController {
   async resendResetEmail(
     @Res() res: Response,
     @Req() req: Request,
-    @Body() body: ForgetPasswordDTO,
+    @Body() body: SharedForgetPasswordDTO,
   ): Promise<void> {
     try {
       const response =
@@ -198,7 +198,7 @@ export class ForgetPasswordsController {
   })
   @ApiBody({
     description: "Verify reset password code",
-    type: VerifyResetPasswordCodeDTO,
+    type: SharedVerifyResetPasswordCodeDTO,
     examples: {
       a: {
         summary: "Sample for reset password",
@@ -212,7 +212,7 @@ export class ForgetPasswordsController {
   async verifyCode(
     @Res() res: Response,
     @Req() req: Request,
-    @Body() body: VerifyResetPasswordCodeDTO,
+    @Body() body: SharedVerifyResetPasswordCodeDTO,
   ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.verifyCode(
@@ -318,7 +318,7 @@ export class ForgetPasswordsController {
   })
   @ApiBody({
     description: "Reset password",
-    type: ResetPasswordDTO,
+    type: SharedResetPasswordDTO,
     examples: {
       a: {
         summary: "Sample for verify reset password code",
@@ -333,7 +333,7 @@ export class ForgetPasswordsController {
   async resetPassword(
     @Res() res: Response,
     @Req() req: Request,
-    @Body() body: ResetPasswordDTO,
+    @Body() body: SharedResetPasswordDTO,
   ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.resetPassword(

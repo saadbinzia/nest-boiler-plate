@@ -131,10 +131,16 @@ export class BaseService<T extends Model> {
    */
   public async create(
     req: Request | AuthenticatedRequest,
-    data: T["_creationAttributes"],
+    data: T["_creationAttributes"] | any,
     options: CreateOptions = {},
   ): Promise<T> {
-    return this.model.create(data, options);
+    // Ensure plain object so fields like email are preserved
+    const plain =
+      data && typeof (data as any).get === 'function'
+        ? (data as any).get({ plain: true })
+        : { ...(data as any) };
+  
+    return this.model.create(plain as any, options);
   }
 
   /**

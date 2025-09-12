@@ -1,5 +1,4 @@
 import {
-  IsBoolean,
   IsDate,
   IsEmail,
   IsIn,
@@ -139,13 +138,6 @@ export class User extends Model<User> {
     defaultValue: REGISTRATION_STATUSES.PENDING,
   })
   registrationStatus: TRegistrationStatus;
-
-  @IsBoolean()
-  @Column({
-    type: DataType.BOOLEAN,
-    defaultValue: false,
-  })
-  agreeTermsAndConditions: boolean;
 
   @IsInt()
   @IsOptional()

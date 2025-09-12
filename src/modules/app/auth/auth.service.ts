@@ -112,9 +112,13 @@ export class AuthService {
         "user_login",
       );
     } catch (error) {
-      // TODO:high: Pass error to formatResponse function.
-      console.error("Error => ", error);
-      throw error;
+      console.error('Error => ', error);
+      return this._globalResponses.formatResponse(
+       request,
+       RESPONSE_STATUSES.ERROR,
+       error,
+       'default',
+    );
     }
   }
 }

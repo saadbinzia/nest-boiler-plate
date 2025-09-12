@@ -1,6 +1,4 @@
 import {
-  Equals,
-  IsBoolean,
   IsEmail,
   IsNotEmpty,
   Matches,
@@ -39,13 +37,4 @@ export class UserDTO {
       "Password must contain at least one number, one uppercase letter, and one symbol.",
   })
   readonly password?: string;
-
-  @IsNotEmpty({
-    message: "Agree to terms and conditions field should not be empty",
-  })
-  @IsBoolean({ message: "Agree to terms and conditions must be a boolean" })
-  @Equals(true, {
-    message: "You must agree to the terms and conditions",
-  })
-  readonly agreeTermsAndConditions: boolean;
 }

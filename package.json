@@ -25,6 +25,10 @@
     "migrate:create": "npx sequelize-cli migration:create --name",
     "migrate:down": "npx sequelize-cli db:migrate:undo",
     "migrate:down:all": "npx sequelize-cli db:migrate:undo:all",
+    "seed": "npx sequelize-cli db:seed:all",
+    "seed:create": "npx sequelize-cli seed:create --name",
+    "seed:down": "npx sequelize-cli db:seed:undo",
+    "seed:down:all": "npx sequelize-cli db:seed:undo:all",
     "prepare": "husky"
   },
   "dependencies": {
