@@ -79,6 +79,7 @@ export class AuthService {
 
     if (!user) {
       const error = new Error("invalid_user_credentials");
+      error.name = "BadRequestError";
       throw error;
     }
 
@@ -89,6 +90,7 @@ export class AuthService {
 
     if (!match) {
       const error = new Error("invalid_user_credentials");
+      error.name = "BadRequestError";
       throw error;
     }
 

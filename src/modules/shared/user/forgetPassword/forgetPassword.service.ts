@@ -10,7 +10,10 @@ import { SystemSettingService } from "src/core/config/systemSetting.service";
 import { User } from "src/entities";
 import { UserSessionService } from "../../auth/userSession/userSession.service";
 import { UserVerificationCodeService } from "../../auth/userVerificationCode/userVerificationCode.service";
-import { SharedResetPasswordDTO, SharedVerifyResetPasswordCodeDTO } from "../dto";
+import {
+  SharedResetPasswordDTO,
+  SharedVerifyResetPasswordCodeDTO,
+} from "../dto";
 import { UserService } from "../user.service";
 import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
 

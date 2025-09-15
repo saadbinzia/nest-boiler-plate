@@ -64,9 +64,8 @@ export default class GlobalResponses {
       statusCode = HttpStatus.FORBIDDEN;
     }
     if (status === RESPONSE_STATUSES.ERROR && data) {
-      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      statusCode = HttpStatus.BAD_REQUEST;
       // Handle specific error cases
-
       if (data.name) {
         if (data?.name === "ConflictError") {
           statusCode = HttpStatus.CONFLICT;
@@ -94,6 +93,8 @@ export default class GlobalResponses {
       data: data ? data : null,
       message: "",
     };
+
+    console.log(response);
 
     if (messageId) {
       response.message =

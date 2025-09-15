@@ -8,11 +8,18 @@ import {
   SuccessResponse,
   UnprocessableResponse,
 } from "src/core/config/interface/swaggerResponse.dto";
+import GlobalResponses from "src/core/config/GlobalResponses";
+import { GlobalEnums } from "src/core/config/globalEnums";
+
+const { RESPONSE_STATUSES } = GlobalEnums;
 
 @ApiTags("Authentication for admin only")
 @Controller("/admin/auth")
 export class AuthController {
-  constructor(private readonly _authService: AuthService) {}
+  constructor(
+    private readonly _authService: AuthService,
+    private readonly _globalResponses: GlobalResponses,
+  ) {}
 
   /**
    * Login
@@ -60,7 +67,21 @@ export class AuthController {
     @Req() req: Request,
     @Res() res,
   ): Promise<void> {
-    const response = await this._authService.login(body, req);
-    res.status(response.statusCode).json(response);
+    try {
+      const response = await this._authService.login(body, req);
+
+      res.status(response.statusCode).json(response);
+    } catch (error) {
+      console.log(error, "HEHEHEHEHEHE");
+
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
+      );
+
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
   }
 }

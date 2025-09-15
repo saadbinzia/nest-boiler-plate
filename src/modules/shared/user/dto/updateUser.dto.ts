@@ -34,8 +34,7 @@ export class UpdateUserDTO {
   @ApiPropertyOptional({
     description: "Phone number (optional, international format)",
     example: "+923001234567",
-    pattern:
-      "^[+]?[(]?[0-9]{3}[)]?[-\\s.]?[0-9]{3}[-\\s.]?[0-9]{4,6}$",
+    pattern: "^[+]?[(]?[0-9]{3}[)]?[-\\s.]?[0-9]{3}[-\\s.]?[0-9]{4,6}$",
   })
   @IsOptional()
   @Matches(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, {

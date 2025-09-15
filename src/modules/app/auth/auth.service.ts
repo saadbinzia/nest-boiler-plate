@@ -112,13 +112,13 @@ export class AuthService {
         "user_login",
       );
     } catch (error) {
-      console.error('Error => ', error);
+      console.error("Error => ", error);
       return this._globalResponses.formatResponse(
-       request,
-       RESPONSE_STATUSES.ERROR,
-       error,
-       'default',
-    );
+        request,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
+      );
     }
   }
 }

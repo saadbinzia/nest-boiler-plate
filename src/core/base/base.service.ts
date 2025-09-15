@@ -136,10 +136,10 @@ export class BaseService<T extends Model> {
   ): Promise<T> {
     // Ensure plain object so fields like email are preserved
     const plain =
-      data && typeof (data as any).get === 'function'
+      data && typeof (data as any).get === "function"
         ? (data as any).get({ plain: true })
         : { ...(data as any) };
-  
+
     return this.model.create(plain as any, options);
   }
 

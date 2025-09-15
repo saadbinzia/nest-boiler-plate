@@ -230,28 +230,28 @@ export class UsersController {
     type: ErrorResponse,
   })
   @ApiBody({
-    description: 'Fields allowed to update',
+    description: "Fields allowed to update",
     type: AdminUpdateUserDTO,
     examples: {
       valid: {
-        summary: 'Valid update payload',
+        summary: "Valid update payload",
         value: {
-          firstName: 'Test',
-          lastName: 'Dev',
-          phoneNumber: '+923034197551',
+          firstName: "Test",
+          lastName: "Dev",
+          phoneNumber: "+923034197551",
         },
       },
       invalidName: {
-        summary: 'Invalid name (contains digits)',
+        summary: "Invalid name (contains digits)",
         value: {
-          firstName: 'T3st',
-          lastName: 'Dev1',
+          firstName: "T3st",
+          lastName: "Dev1",
         },
       },
       invalidPhone: {
-        summary: 'Invalid phone format',
+        summary: "Invalid phone format",
         value: {
-          phoneNumber: '12345',
+          phoneNumber: "12345",
         },
       },
     },
