@@ -72,8 +72,6 @@ export class AuthController {
 
       res.status(response.statusCode).json(response);
     } catch (error) {
-      console.log(error, "HEHEHEHEHEHE");
-
       const errorResponse = this._globalResponses.formatResponse(
         req,
         RESPONSE_STATUSES.ERROR,

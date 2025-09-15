@@ -52,6 +52,8 @@ export class UserService extends BaseService<User> {
           "email",
           "role",
           "registrationStatus",
+          "createdAt",
+          "status",
         ],
       },
     );
