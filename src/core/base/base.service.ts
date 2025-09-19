@@ -257,7 +257,7 @@ export class BaseService<T extends Model> {
     limit: number = 10,
     options: Omit<FindOptions, "limit" | "offset" | "where"> = {},
   ): Promise<{
-    data: T[];
+    rows: T[];
     meta: { total: number; page: number; limit: number; pages: number };
   }> {
     const offset = (page - 1) * limit;
@@ -268,7 +268,7 @@ export class BaseService<T extends Model> {
     });
 
     return {
-      data: rows,
+      rows,
       meta: {
         total: count,
         page,

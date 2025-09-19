@@ -11,9 +11,16 @@ import { Request } from "express";
 import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
 import { AttachmentService } from "src/modules/shared/attachment/attachment.service";
 import { plainToInstance } from "class-transformer";
+import { GetUsersQueryDTO } from "./dto/getUserQuerry.dto";
+import { Op } from "sequelize";
 
-const { RESPONSE_STATUSES, ACTIVE_STATUSES, REGISTRATION_STATUSES } =
-  GlobalEnums;
+const {
+  RESPONSE_STATUSES,
+  ACTIVE_STATUSES,
+  REGISTRATION_STATUSES,
+  USER_ROLES,
+} = GlobalEnums;
+console.log(Object.values(USER_ROLES).map((item) => item === "user"));
 @Injectable()
 export class UserService extends BaseService<User> {
   constructor(
@@ -23,6 +30,47 @@ export class UserService extends BaseService<User> {
     private _globalResponses: GlobalResponses,
   ) {
     super(User);
+  }
+
+  // Helper Functions
+  private async searchAndPaginateUsers(
+    req: AuthenticatedRequest,
+    where: any,
+    page: number,
+    limit: number,
+    q?: string,
+  ) {
+    if (q?.trim()) {
+      const likeOp = (Op as any).iLike || Op.like;
+      const pattern = `%${q.trim()}%`;
+      where[Op.or] = [
+        { firstName: { [likeOp]: pattern } },
+        { lastName: { [likeOp]: pattern } },
+        { email: { [likeOp]: pattern } },
+        { phoneNumber: { [likeOp]: pattern } },
+      ];
+    }
+
+    const { rows, meta } = await this.paginate(req, where, page, limit, {
+      attributes: [
+        "id",
+        "email",
+        "role",
+        "firstName",
+        "lastName",
+        "status",
+        "phoneNumber",
+        "registrationStatus",
+        "createdBy",
+        "updatedBy",
+        "createdAt",
+        "updatedAt",
+        "deletedAt",
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    return { rows, meta };
   }
 
   async findByEmail(
@@ -127,6 +175,95 @@ export class UserService extends BaseService<User> {
       RESPONSE_STATUSES.SUCCESS,
       user,
       "user_found",
+    );
+  }
+
+  /**
+   * Get All users
+   * @description Get All Users (search + pagination)
+   * @param {AuthenticatedRequest} req
+   * @returns {Promise<ApiResponse>}
+   */
+  async getAllStaff(
+    req: AuthenticatedRequest,
+    params: GetUsersQueryDTO = { page: 1, limit: 10 },
+  ): Promise<ApiResponse> {
+    const { page = 1, limit = 10, q, role, status } = params;
+
+    // WHERE
+    const where: any = {};
+
+    const roles = Array.isArray(role) ? role : role ? [role] : [];
+    if (roles.length) {
+      where.role = { [Op.in]: roles, [Op.ne]: USER_ROLES.USER };
+    } else {
+      where.role = { [Op.ne]: USER_ROLES.USER };
+    }
+
+    if (status !== undefined && status !== null && status !== ("" as any)) {
+      where.status = status;
+    }
+
+    const { rows, meta } = await this.searchAndPaginateUsers(
+      req,
+      where,
+      page,
+      limit,
+      q,
+    );
+
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      { rows, meta },
+      "users_listed",
+    );
+  }
+
+  /**
+   * Get All users
+   * @description Get All Users (search + pagination)
+   * @param {AuthenticatedRequest} req
+   * @returns {Promise<ApiResponse>}
+   */
+  async getAllUsers(
+    req: AuthenticatedRequest,
+    params: GetUsersQueryDTO = { page: 1, limit: 10 },
+  ): Promise<ApiResponse> {
+    const { page = 1, limit = 10, q, role, status } = params;
+
+    // WHERE
+    const where: any = {};
+
+    const roles = Array.isArray(role) ? role : role ? [role] : [];
+    const exclude = [
+      USER_ROLES.MANAGER,
+      USER_ROLES.STAFF,
+      USER_ROLES.SUPER_ADMIN,
+    ];
+    if (roles.length) {
+      where.role = { [Op.in]: roles.filter((r) => !exclude.includes(r)) };
+    } else {
+      where.role = { [Op.notIn]: exclude };
+    }
+
+    if (status !== undefined && status !== null && status !== ("" as any)) {
+      where.status = status;
+    }
+
+    const { rows, meta } = await this.searchAndPaginateUsers(
+      req,
+      where,
+      page,
+      limit,
+      q,
+    );
+
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      { rows, meta },
+      "users_listed",
     );
   }
 

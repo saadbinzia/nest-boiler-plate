@@ -37,6 +37,7 @@ import { RolesGuard } from "src/core/guards/checkRole.guard";
 import { JwtAuthGuard } from "src/core/guards/jwt-auth.guard";
 import { AdminUpdateUserDTO, UserDTO } from "./dto";
 import { UserService } from "./user.service";
+import { GetUsersQueryDTO } from "./dto/getUserQuerry.dto";
 
 const { USER_ROLES, RESPONSE_STATUSES } = GlobalEnums;
 @ApiTags("Admin Users")
@@ -181,6 +182,108 @@ export class UsersController {
         "default",
       );
 
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  }
+
+  /**
+   * Get All staff (pagination + search)
+   * @description Get all users.
+   * @param {Response} res
+   * @param {AuthenticatedRequest} req
+   * @returns {Promise<JSON>}
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post("get-all-staff")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(USER_ROLES.SUPER_ADMIN)
+  @ApiBearerAuth("access-token")
+  @ApiOperation({
+    summary: "Get all users (paginated + search)",
+    description: "Get all users if token is valid.",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - Token is missing or invalid",
+    type: unAuthorizedResponse,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Users found",
+    type: SuccessResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Some kind of error",
+    type: ErrorResponse,
+  })
+  @ApiBearerAuth("access-token")
+  async getAllStaff(
+    @Res() res: Response,
+    @Req() req: AuthenticatedRequest,
+    @Body() Body: GetUsersQueryDTO,
+  ): Promise<void> {
+    try {
+      const response = await this._userService.getAllStaff(req, Body);
+      res.status(response.statusCode).json(response);
+    } catch (error) {
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
+      );
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  }
+
+  /**
+   * Get All users (pagination + search)
+   * @description Get all users.
+   * @param {Response} res
+   * @param {AuthenticatedRequest} req
+   * @returns {Promise<JSON>}
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post("get-all-users")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(USER_ROLES.SUPER_ADMIN)
+  @ApiBearerAuth("access-token")
+  @ApiOperation({
+    summary: "Get all users (paginated + search)",
+    description: "Get all users if token is valid.",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - Token is missing or invalid",
+    type: unAuthorizedResponse,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Users found",
+    type: SuccessResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Some kind of error",
+    type: ErrorResponse,
+  })
+  @ApiBearerAuth("access-token")
+  async getAllUsers(
+    @Res() res: Response,
+    @Req() req: AuthenticatedRequest,
+    @Body() Body: GetUsersQueryDTO,
+  ): Promise<void> {
+    try {
+      const response = await this._userService.getAllUsers(req, Body);
+      res.status(response.statusCode).json(response);
+    } catch (error) {
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
+      );
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   }
