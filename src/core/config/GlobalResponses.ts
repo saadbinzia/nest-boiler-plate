@@ -94,8 +94,6 @@ export default class GlobalResponses {
       message: "",
     };
 
-    console.log(response);
-
     if (messageId) {
       response.message =
         this.getMessageById(status, messageId, language) ||

@@ -191,7 +191,7 @@ export class UserService extends BaseService<User> {
     const { page = 1, limit = 10, q, role, status } = params;
 
     // WHERE
-    const where: any = {};
+    const where: any = { id: { [Op.ne]: req.user.id } };
 
     const roles = Array.isArray(role) ? role : role ? [role] : [];
     if (roles.length) {
