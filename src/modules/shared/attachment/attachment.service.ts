@@ -9,6 +9,7 @@ import { GlobalEnums } from "src/core/config/globalEnums";
 import { Request } from "express";
 import { S3Service } from "../s3/s3.service";
 import { GCSService } from "../gcs/gcs.service";
+import { LocalStorageService } from "./local-storage.service";
 import { ATTACHMENT_STORAGE } from "./attachment-storage.provider";
 
 const { RESPONSE_STATUSES } = GlobalEnums;
@@ -21,7 +22,10 @@ export class AttachmentService extends BaseService<Attachment> {
     private readonly _helperService: HelperService,
     private readonly _globalResponses: GlobalResponses,
     @Inject(ATTACHMENT_STORAGE)
-    private readonly _storageService: S3Service | GCSService,
+    private readonly _storageService:
+      | S3Service
+      | GCSService
+      | LocalStorageService,
   ) {
     super(Attachment);
   }

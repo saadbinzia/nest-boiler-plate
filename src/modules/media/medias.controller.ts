@@ -25,6 +25,7 @@ import { createReadStream, existsSync, mkdirSync, statSync } from "fs";
 import * as path from "path";
 import { ErrorResponse } from "src/core/config/interface/swaggerResponse.dto";
 import { ATTACHMENT_STORAGE } from "../shared/attachment/attachment-storage.provider";
+import { LocalStorageService } from "../shared/attachment/local-storage.service";
 import { GCSService } from "../shared/gcs/gcs.service";
 import { S3Service } from "../shared/s3/s3.service";
 
@@ -70,7 +71,10 @@ export class MediasController {
 
   constructor(
     @Inject(ATTACHMENT_STORAGE)
-    private readonly storageService: S3Service | GCSService,
+    private readonly storageService:
+      | S3Service
+      | GCSService
+      | LocalStorageService,
   ) {
     // Ensure uploads directory exists
     if (!existsSync(this.baseDir)) {
@@ -139,7 +143,7 @@ export class MediasController {
 
       // Check if file exists locally
       if (!existsSync(fullPath)) {
-        // Try S3 or GCS (per STORAGE_TYPE) for attachment paths
+        // Try S3, GCS, or local uploads (per STORAGE_TYPE) for attachment paths
         if (joinedPath.startsWith("attachments/")) {
           try {
             return await this.serveRemoteStorageFile(joinedPath, download, res);
@@ -244,7 +248,10 @@ export class MediasController {
       const filename = pathParts[pathParts.length - 1];
 
       let fileBuffer: Buffer;
-      if (this.storageService instanceof GCSService) {
+      if (
+        this.storageService instanceof GCSService ||
+        this.storageService instanceof LocalStorageService
+      ) {
         fileBuffer = await this.storageService.downloadBuffer(filePath);
       } else {
         fileBuffer = await this.storageService.downloadFile(filename, folder);
