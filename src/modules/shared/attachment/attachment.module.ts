@@ -13,6 +13,6 @@ import { attachmentStorageProvider } from "./attachment-storage.provider";
     HelperService,
     GlobalResponses,
   ],
-  exports: [AttachmentService],
+  exports: [AttachmentService, attachmentStorageProvider],
 })
 export class AttachmentModule {}

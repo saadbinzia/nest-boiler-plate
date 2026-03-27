@@ -10,6 +10,7 @@ import { NotificationModule } from "./notification/notification.module";
 import { UserModule } from "./user/user.module";
 import { GCSModule } from "./gcs/gcs.module";
 import { AttachmentModule } from "./attachment/attachment.module";
+import { S3Module } from "./s3/s3.module";
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { AttachmentModule } from "./attachment/attachment.module";
     forwardRef(() => AuthModule),
     forwardRef(() => NotificationModule),
     forwardRef(() => AttachmentModule),
-    GCSModule,
+    forwardRef(() => S3Module),
+    forwardRef(() => GCSModule),
   ],
   providers: [
     SharedAuthService,
@@ -33,7 +35,9 @@ import { AttachmentModule } from "./attachment/attachment.module";
     SystemSettingService,
     GlobalResponses,
     HelperService,
-    forwardRef(() => AttachmentModule),
+    AttachmentModule,
+    S3Module,
+    GCSModule,
   ],
 })
 export class SharedModule {}

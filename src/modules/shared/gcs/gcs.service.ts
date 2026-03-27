@@ -125,6 +125,18 @@ export class GCSService {
     }
   }
 
+  async downloadBuffer(objectPath: string): Promise<Buffer> {
+    try {
+      const bucket = this.storage.bucket(this.bucketName);
+      const file = bucket.file(objectPath);
+      const [buf] = await file.download();
+      return buf;
+    } catch (error) {
+      console.error("Error downloading file from GCS:", error);
+      throw new Error("Failed to download file from Google Cloud Storage");
+    }
+  }
+
   async getSignedUrl(key: string, expiration: number = 3600): Promise<string> {
     try {
       const bucket = this.storage.bucket(this.bucketName);

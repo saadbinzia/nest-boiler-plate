@@ -3,6 +3,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Query,
@@ -23,7 +24,9 @@ import { Request, Response } from "express";
 import { createReadStream, existsSync, mkdirSync, statSync } from "fs";
 import * as path from "path";
 import { ErrorResponse } from "src/core/config/interface/swaggerResponse.dto";
+import { ATTACHMENT_STORAGE } from "../shared/attachment/attachment-storage.provider";
 import { GCSService } from "../shared/gcs/gcs.service";
+import { S3Service } from "../shared/s3/s3.service";
 
 // MIME type mapping
 const MIME_TYPES: Record<string, string> = {
@@ -65,7 +68,10 @@ export class MediasController {
     "no-image.png",
   );
 
-  constructor(private readonly gcsService: GCSService) {
+  constructor(
+    @Inject(ATTACHMENT_STORAGE)
+    private readonly storageService: S3Service | GCSService,
+  ) {
     // Ensure uploads directory exists
     if (!existsSync(this.baseDir)) {
       mkdirSync(this.baseDir, { recursive: true });
@@ -133,13 +139,13 @@ export class MediasController {
 
       // Check if file exists locally
       if (!existsSync(fullPath)) {
-        // Try to serve from GCS if it's an attachment path
+        // Try S3 or GCS (per STORAGE_TYPE) for attachment paths
         if (joinedPath.startsWith("attachments/")) {
           try {
-            return await this.serveGCSFile(joinedPath, download, res);
+            return await this.serveRemoteStorageFile(joinedPath, download, res);
           } catch (error) {
-            console.error("Error serving GCS file:", error);
-            // Fall back to default image if GCS fails
+            console.error("Error serving remote storage file:", error);
+            // Fall back to default image if remote storage fails
             return this.serveDefaultImage(res);
           }
         }
@@ -227,37 +233,32 @@ export class MediasController {
     throw new NotFoundException("Default image not found");
   }
 
-  private async serveGCSFile(
+  private async serveRemoteStorageFile(
     filePath: string,
     download: boolean,
     res: Response,
   ): Promise<StreamableFile> {
     try {
-      // Extract folder and filename from path
       const pathParts = filePath.split("/");
       const folder = pathParts.slice(0, -1).join("/");
       const filename = pathParts[pathParts.length - 1];
 
-      // Get file from GCS using the full path
-      const fullPath = `${folder}/${filename}`;
-      const bucket = this.gcsService["storage"].bucket(
-        this.gcsService["bucketName"],
-      );
-      const file = bucket.file(fullPath);
-      const [fileBuffer] = await file.download();
+      let fileBuffer: Buffer;
+      if (this.storageService instanceof GCSService) {
+        fileBuffer = await this.storageService.downloadBuffer(filePath);
+      } else {
+        fileBuffer = await this.storageService.downloadFile(filename, folder);
+      }
 
-      // Determine MIME type
       const ext = path.extname(filename).substring(1).toLowerCase();
       const mimeType = MIME_TYPES[ext] || DEFAULT_MIME_TYPE;
 
-      // Set response headers
       res.status(200);
       res.setHeader("Content-Length", fileBuffer.length);
       res.setHeader("Content-Type", mimeType);
       res.setHeader("Accept-Ranges", "bytes");
       res.setHeader("Cache-Control", "public, max-age=31536000");
 
-      // Set Content-Disposition header for downloads
       if (download) {
         res.setHeader(
           "Content-Disposition",
@@ -265,15 +266,14 @@ export class MediasController {
         );
       }
 
-      // Create a readable stream from the buffer
       const stream = new Readable();
       stream.push(fileBuffer);
       stream.push(null);
 
       return new StreamableFile(stream);
     } catch (error) {
-      console.error("Error serving GCS file:", error);
-      throw new NotFoundException("File not found in GCS");
+      console.error("Error serving remote storage file:", error);
+      throw new NotFoundException("File not found in object storage");
     }
   }
 
