@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsOptional, Matches } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
+import { IsNotEmpty } from "class-validator";
 
 /**
  * User DTO (Data Transfer Object)
@@ -6,21 +7,11 @@ import { IsNotEmpty, IsOptional, Matches } from "class-validator";
  * Used at the beginning of the process.
  */
 export class UpdateUserDTO {
+  @ApiProperty({
+    description: "First name (alphabets and spaces only)",
+    example: "John",
+    minLength: 1,
+  })
   @IsNotEmpty({ message: "First name should not be empty" })
-  @Matches(/^[A-Za-z\s]+$/, {
-    message: "First name should contain only alphabets and spaces",
-  })
-  readonly firstName: string;
-
-  @IsNotEmpty({ message: "Last name should not be empty" })
-  @Matches(/^[A-Za-z\s]+$/, {
-    message: "Last name should contain only alphabets and spaces",
-  })
-  readonly lastName: string;
-
-  @IsOptional()
-  @Matches(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, {
-    message: "Invalid phone number format",
-  })
-  readonly phoneNumber?: string;
+  readonly fullName: string;
 }

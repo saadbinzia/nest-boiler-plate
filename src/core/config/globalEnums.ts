@@ -30,9 +30,9 @@ export class GlobalEnums {
    * Represents the different stages a user goes through during registration.
    */
   static readonly REGISTRATION_STATUSES = {
-    PENDING: "pending",
-    COMPLETED: "completed",
-    VERIFICATION_PENDING: "verification_pending",
+    STARTED: "STARTED",
+    UNVERIFIED: "UNVERIFIED",
+    COMPLETED: "COMPLETED",
   };
 
   /**
@@ -43,19 +43,17 @@ export class GlobalEnums {
     /**
      * user is active.
      */
-    ACTIVE: 10,
+    ACTIVE: "ACTIVE",
 
     /**
      * User is inactive.
      */
-    IN_ACTIVE: 20,
+    IN_ACTIVE: "IN_ACTIVE",
   };
 
   static readonly USER_ROLES = {
-    SUPER_ADMIN: "admin",
-    USER: "user",
-    MANAGER: "manager",
-    STAFF: "staff",
+    ADMIN: "ADMIN",
+    USER: "USER",
   };
 
   /**
@@ -102,23 +100,63 @@ export class GlobalEnums {
   } as const;
 
   static readonly SESSION_STATUS = {
-    ACTIVE: "active",
-    EXPIRED: "expired",
-    REVOKED: "revoked",
+    ACTIVE: "ACTIVE",
+    EXPIRED: "EXPIRED",
+    REVOKED: "REVOKED",
   };
 
   static readonly ATTACHMENT_PARENT = {
-    USER: "users",
-    CHANNEL: "channels",
-    VIDEO: "video",
+    USER: "USERS",
+    TRIBUTE: "TRIBUTES",
   };
 
   static readonly ATTACHMENT_TYPES = {
-    LOGO: "logo",
-    THUMBNAIL: "thumbnail",
-    PROFILE: "profile",
+    MOMENTS_IN_TIME: "MOMENTS_IN_TIME",
+    LIVING_MEMORIES: "LIVING_MEMORIES",
+    PROFILE: "PROFILE",
     OTHER: "other",
   };
+
+  /**
+   * Property related enums
+   */
+  static readonly PROPERTY_TYPES = {
+    COMMERCIAL: "commercial",
+    RESTAURANT: "restaurant",
+    ENTERTAINMENT: "entertainment",
+    OFFICE: "office",
+    PARKING: "parking",
+    HOSPITAL: "hospital",
+  } as const;
+
+  static readonly SPACE_TYPES = {
+    OFFICE: "office",
+    RESTAURANT: "restaurant",
+    KARAOKE: "karaoke",
+    PARKING: "parking",
+    HOSPITAL: "hospital",
+    OTHER: "other",
+  } as const;
+
+  static readonly SPACE_CONDITION = {
+    NEW: "new",
+    GOOD: "good",
+    NEEDS_RENOVATION: "needs_renovation",
+    UNDER_RENOVATION: "under_renovation",
+  } as const;
+
+  static readonly OCCUPANCY_STATUS = {
+    OCCUPIED: "occupied",
+    VACANT: "vacant",
+    RESERVED: "reserved",
+  } as const;
+
+  static readonly EXPENSE_CATEGORIES = {
+    MAINTENANCE: "maintenance",
+    UTILITIES: "utilities",
+    TAXES: "taxes",
+    OTHER: "other",
+  } as const;
 }
 
 export type TUserRole =

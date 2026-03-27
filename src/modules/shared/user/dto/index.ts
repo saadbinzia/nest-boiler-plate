@@ -1,16 +1,16 @@
-import { ForgetPasswordDTO } from "./forgetPassword.dto";
-import { ResetPasswordDTO } from "./resetPassword.dto";
+import { SharedForgetPasswordDTO } from "./forgetPassword.dto";
+import { SharedResetPasswordDTO } from "./resetPassword.dto";
 import { UserSessionDTO } from "../../auth/dto/userSession.dto";
-import { VerifyResetPasswordCodeDTO } from "./verifyResetPassword.dto";
+import { SharedVerifyResetPasswordCodeDTO } from "./verifyResetPassword.dto";
 import { UpdateUserDTO } from "./updateUser.dto";
 import { ResendCodeDTO } from "./resendCode.dto";
 import { ChangeUserPasswordDTO } from "./changeUserPassword.dto";
 
 export {
-  ForgetPasswordDTO,
-  ResetPasswordDTO,
+  SharedForgetPasswordDTO,
+  SharedResetPasswordDTO,
   UserSessionDTO,
-  VerifyResetPasswordCodeDTO,
+  SharedVerifyResetPasswordCodeDTO,
   UpdateUserDTO,
   ResendCodeDTO,
   ChangeUserPasswordDTO,

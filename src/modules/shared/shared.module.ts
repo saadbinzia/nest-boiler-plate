@@ -8,6 +8,8 @@ import { UserSessionService } from "./auth/userSession/userSession.service";
 import { CacheModule } from "./cache/cache.module";
 import { NotificationModule } from "./notification/notification.module";
 import { UserModule } from "./user/user.module";
+import { GCSModule } from "./gcs/gcs.module";
+import { AttachmentModule } from "./attachment/attachment.module";
 import { S3Module } from "./s3/s3.module";
 
 @Module({
@@ -16,7 +18,9 @@ import { S3Module } from "./s3/s3.module";
     forwardRef(() => CacheModule),
     forwardRef(() => AuthModule),
     forwardRef(() => NotificationModule),
-    S3Module,
+    forwardRef(() => AttachmentModule),
+    forwardRef(() => S3Module),
+    forwardRef(() => GCSModule),
   ],
   providers: [
     SharedAuthService,
@@ -25,6 +29,15 @@ import { S3Module } from "./s3/s3.module";
     HelperService,
     SystemSettingService,
   ],
-  exports: [SharedAuthService, UserSessionService, SystemSettingService],
+  exports: [
+    SharedAuthService,
+    UserSessionService,
+    SystemSettingService,
+    GlobalResponses,
+    HelperService,
+    AttachmentModule,
+    S3Module,
+    GCSModule,
+  ],
 })
 export class SharedModule {}

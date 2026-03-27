@@ -5,14 +5,14 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     // Define the notification types enum
     const notificationTypes = [
-      'info', 'success', 'warning', 'error', 'system', 'promotional', 'security', 'other'
+      'INFO', 'SUCCESS', 'WARNING', 'ERROR', 'SYSTEM', 'PROMOTIONAL', 'SECURITY', 'OTHER'
     ];
     
     // Define the notification priorities enum
     const notificationPriorities = [
-      'low', 'medium', 'high', 'critical'
+      'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
     ];
-
+    
     await queryInterface.createTable('tbl_notifications', {
       id: { 
         type: Sequelize.BIGINT, 
@@ -20,6 +20,15 @@ module.exports = {
         autoIncrement: true, 
         unique: true, 
         primaryKey: true 
+      },
+      user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'tbl_users',
+          key: 'id'
+        },
+        comment: 'ID of the user who will receive this notification'
       },
       title: { 
         type: Sequelize.STRING(255), 
@@ -38,13 +47,13 @@ module.exports = {
       type: {
         type: Sequelize.ENUM(...notificationTypes),
         allowNull: false,
-        defaultValue: 'info',
+        defaultValue: 'INFO',
         comment: 'Type/category of the notification'
       },
       priority: {
         type: Sequelize.ENUM(...notificationPriorities),
         allowNull: false,
-        defaultValue: 'medium',
+        defaultValue: 'MEDIUM',
         comment: 'Priority level of the notification'
       },
       is_read: { 
@@ -67,16 +76,7 @@ module.exports = {
           isUrl: true
         }
       },
-      user_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'tbl_users',
-          key: 'id'
-        },
-        comment: 'ID of the user who will receive this notification'
-      },
-      metadata: { 
+      meta_data: { 
         type: Sequelize.JSONB,
         allowNull: true,
         comment: 'Additional metadata for the notification'

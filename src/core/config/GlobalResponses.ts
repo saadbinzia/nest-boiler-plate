@@ -7,6 +7,7 @@ import {
 import { AuthenticatedRequest } from "./interface/request.interface";
 import englishTranslations from "./translations/english";
 import spanishTranslations from "./translations/spanish";
+import russianTranslations from "./translations/russian";
 import { GlobalEnums } from "./globalEnums";
 import { HttpStatus } from "@nestjs/common";
 
@@ -31,6 +32,7 @@ export default class GlobalResponses {
   private readonly messages: Messages = {
     en: englishTranslations,
     es: spanishTranslations,
+    ru: russianTranslations,
     // Add more LANGUAGES as needed
   };
 
@@ -64,9 +66,8 @@ export default class GlobalResponses {
       statusCode = HttpStatus.FORBIDDEN;
     }
     if (status === RESPONSE_STATUSES.ERROR && data) {
-      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      statusCode = HttpStatus.BAD_REQUEST;
       // Handle specific error cases
-
       if (data.name) {
         if (data?.name === "ConflictError") {
           statusCode = HttpStatus.CONFLICT;
@@ -79,7 +80,7 @@ export default class GlobalResponses {
         } else if (data?.name === "UnavailableError") {
           statusCode = HttpStatus.SERVICE_UNAVAILABLE;
         } else {
-          statusCode = data?.status;
+          statusCode = data?.status || HttpStatus.INTERNAL_SERVER_ERROR;
         }
       }
 
@@ -91,7 +92,7 @@ export default class GlobalResponses {
     const response: ApiResponse = {
       statusCode,
       status,
-      data: data ? data : null,
+      data: data ? (data.response ? data.response.message : data) : null,
       message: "",
     };
 

@@ -31,8 +31,8 @@ dotenv.config();
       // options: {
       //   password: process.env.REDIS_PASSWORD
       // }
-    }),
-    ConfigModule.forRoot({ isGlobal: true }),
+    }) as any,
+    ConfigModule.forRoot({ isGlobal: true }) as any,
     CacheModule,
     forwardRef(() => AdminModule),
     forwardRef(() => WebAppModule),

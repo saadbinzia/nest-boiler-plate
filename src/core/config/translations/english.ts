@@ -51,6 +51,8 @@ const englishTranslations = {
     subscription_updated: "Your subscription has been updated successfully",
     plan_created: "New subscription plan has been created.",
     subscription_upgraded: "Your subscription has been upgraded successfully",
+    space_availability_checked: "Space availability checked successfully",
+    space_leases_found: "Active leases retrieved successfully",
   },
   error: {
     // General messages
@@ -130,6 +132,13 @@ const englishTranslations = {
     download_failed: "Download failed.",
     error_updating_user_videos: "Error updating user videos.",
     profile_image_not_found: "Profile image not found.",
+
+    // Space and lease messages
+    space_not_available_for_period:
+      "This space is not available for the selected date range. Please choose different dates or select another space.",
+    tenant_not_found: "The selected tenant was not found.",
+    space_already_occupied:
+      "This space is already occupied during the selected period.",
   },
   unVerifiedUser: {
     user_not_verified: "User is not verified.",

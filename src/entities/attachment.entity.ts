@@ -28,7 +28,7 @@ const { ATTACHMENT_PARENT, ATTACHMENT_TYPES } = GlobalEnums;
       {
         model: User,
         as: "creator",
-        attributes: ["id", "email", "firstName", "lastName"],
+        attributes: ["id", "email", "fullName"],
       },
     ],
   },
@@ -37,7 +37,7 @@ const { ATTACHMENT_PARENT, ATTACHMENT_TYPES } = GlobalEnums;
       {
         model: User,
         as: "creator",
-        attributes: ["id", "email", "firstName", "lastName"],
+        attributes: ["id", "email", "fullName"],
       },
     ],
   },

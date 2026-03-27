@@ -3,6 +3,17 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {  
   async up(queryInterface, Sequelize) {
+    // Drop enum types if they exist (in case they were left behind from a previous migration)
+    await queryInterface.sequelize.query(
+      'DROP TYPE IF EXISTS "enum_tbl_users_role";'
+    );
+    await queryInterface.sequelize.query(
+      'DROP TYPE IF EXISTS "enum_tbl_users_status";'
+    );
+    await queryInterface.sequelize.query(
+      'DROP TYPE IF EXISTS "enum_tbl_users_registration_status";'
+    );
+
     await queryInterface.createTable('tbl_users', {
       id: { 
         type: Sequelize.BIGINT, 
@@ -32,48 +43,30 @@ module.exports = {
       },
 
       role: { 
-        type: Sequelize.ENUM('admin', 'user', 'manager', 'staff'),
+        type: Sequelize.ENUM('ADMIN', 'USER'),
         allowNull: false,
-        defaultValue: 'user',
+        defaultValue: 'USER',
       },
 
-      first_name: { 
-        type: Sequelize.STRING(100),
+      full_name: { 
+        type: Sequelize.STRING(255),
         allowNull: true,
         validate: {
-          len: [1, 100],
+          len: [1, 255],
         },
       },
 
-      last_name: { 
-        type: Sequelize.STRING(100),
-        allowNull: true,
-        validate: {
-          len: [1, 100],
-        },
-      },
 
       status: { 
-        type: Sequelize.INTEGER,
+        type: Sequelize.ENUM('ACTIVE', 'IN_ACTIVE'),
         allowNull: false,
-        defaultValue: 10, // ACTIVE
-        validate: {
-          isIn: [[10, 20]], // ACTIVE, IN_ACTIVE
-        },
-      },
-
-      phone_number: { 
-        type: Sequelize.STRING,
-        allowNull: true,
-        validate: {
-          is: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
-        },
+        defaultValue: 'ACTIVE',
       },
 
       registration_status: { 
-        type: Sequelize.ENUM('pending', 'completed', 'verification_pending'),
+        type: Sequelize.ENUM('STARTED', 'UNVERIFIED', 'COMPLETED'),
         allowNull: false,
-        defaultValue: 'pending',
+        defaultValue: 'UNVERIFIED',
       },
       
       created_by: { 
@@ -107,5 +100,16 @@ module.exports = {
 
   async down(queryInterface) {
     await queryInterface.dropTable('tbl_users');
+    
+    // Drop the enum types if they exist
+    await queryInterface.sequelize.query(
+      'DROP TYPE IF EXISTS "enum_tbl_users_role";'
+    );
+    await queryInterface.sequelize.query(
+      'DROP TYPE IF EXISTS "enum_tbl_users_status";'
+    );
+    await queryInterface.sequelize.query(
+      'DROP TYPE IF EXISTS "enum_tbl_users_registration_status";'
+    );
   }
 };

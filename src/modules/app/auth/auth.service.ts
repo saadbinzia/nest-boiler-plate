@@ -60,8 +60,7 @@ export class AuthService {
             },
           ],
           attributes: [
-            "firstName",
-            "lastName",
+            "fullName",
             "password",
             "id",
             "email",
@@ -77,7 +76,7 @@ export class AuthService {
         throw error;
       }
 
-      if (user.registrationStatus == REGISTRATION_STATUSES.PENDING) {
+      if (user.registrationStatus == REGISTRATION_STATUSES.UNVERIFIED) {
         const error = new Error("user_not_verified");
         error.name = "BadRequestError";
         throw error;
@@ -112,9 +111,13 @@ export class AuthService {
         "user_login",
       );
     } catch (error) {
-      // TODO:high: Pass error to formatResponse function.
       console.error("Error => ", error);
-      throw error;
+      return this._globalResponses.formatResponse(
+        request,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
+      );
     }
   }
 }

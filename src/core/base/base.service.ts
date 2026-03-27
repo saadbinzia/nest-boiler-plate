@@ -131,10 +131,16 @@ export class BaseService<T extends Model> {
    */
   public async create(
     req: Request | AuthenticatedRequest,
-    data: T["_creationAttributes"],
+    data: T["_creationAttributes"] | any,
     options: CreateOptions = {},
   ): Promise<T> {
-    return this.model.create(data, options);
+    // Ensure plain object so fields like email are preserved
+    const plain =
+      data && typeof (data as any).get === "function"
+        ? (data as any).get({ plain: true })
+        : { ...(data as any) };
+
+    return this.model.create(plain as any, options);
   }
 
   /**
@@ -241,7 +247,7 @@ export class BaseService<T extends Model> {
    * @param {WhereOptions} condition - The where clause for the query
    * @param {number} page - Page number (1-based)
    * @param {number} limit - Number of records per page
-   * @param {Omit<FindOptions, 'limit' | 'offset' | 'where'>} options - Additional query options
+   * @param {Omit<FindAndCountOptions, 'limit' | 'offset' | 'where'>} options - Additional query options
    * @returns {Promise<{data: T[]; meta: {total: number; page: number; limit: number; pages: number}}>} Paginated result
    */
   public async paginate(
@@ -249,9 +255,9 @@ export class BaseService<T extends Model> {
     condition: WhereOptions = {},
     page: number = 1,
     limit: number = 10,
-    options: Omit<FindOptions, "limit" | "offset" | "where"> = {},
+    options: Omit<FindAndCountOptions, "limit" | "offset" | "where"> = {},
   ): Promise<{
-    data: T[];
+    rows: T[];
     meta: { total: number; page: number; limit: number; pages: number };
   }> {
     const offset = (page - 1) * limit;
@@ -262,7 +268,7 @@ export class BaseService<T extends Model> {
     });
 
     return {
-      data: rows,
+      rows,
       meta: {
         total: count,
         page,

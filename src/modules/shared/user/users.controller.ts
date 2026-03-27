@@ -37,7 +37,7 @@ import {
   ChangeUserPasswordDTO,
   ResendCodeDTO,
   UpdateUserDTO,
-  VerifyResetPasswordCodeDTO,
+  SharedVerifyResetPasswordCodeDTO,
 } from "./dto";
 import { ForgetPasswordService } from "./forgetPassword/forgetPassword.service";
 import { UserService } from "./user.service";
@@ -134,6 +134,24 @@ export class UsersController {
     status: 400,
     description: "Some kind of error",
     type: ErrorResponse,
+  })
+  @ApiBody({
+    description: "Fields allowed to update for the current authenticated user",
+    type: UpdateUserDTO,
+    examples: {
+      valid: {
+        summary: "Valid update payload",
+        value: {
+          fullName: "John",
+        },
+      },
+      invalidName: {
+        summary: "Invalid name (contains numbers)",
+        value: {
+          fullName: "J0hn",
+        },
+      },
+    },
   })
   @ApiBearerAuth("access-token")
   async updateUser(
@@ -268,7 +286,7 @@ export class UsersController {
       a: {
         summary: "Sample request rigistration code",
         value: {
-          email: "saadbinzia055@gmail.com",
+          email: "mohsin055@gmail.com",
         },
       },
     },
@@ -327,12 +345,12 @@ export class UsersController {
   })
   @ApiBody({
     description: "Verify rigistration code",
-    type: VerifyResetPasswordCodeDTO,
+    type: SharedVerifyResetPasswordCodeDTO,
     examples: {
       a: {
         summary: "Sample for rigistration",
         value: {
-          email: "devtester@site.com",
+          email: "mohsin055@gmail.com",
           code: "6481",
         },
       },
@@ -341,7 +359,7 @@ export class UsersController {
   async verifyCode(
     @Res() res: Response,
     @Req() req: Request,
-    @Body() body: VerifyResetPasswordCodeDTO,
+    @Body() body: SharedVerifyResetPasswordCodeDTO,
   ): Promise<void> {
     try {
       const response = await this._forgetPasswordService.verifyCode(
@@ -422,7 +440,7 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor("profileImage"))
+  @UseInterceptors(FileInterceptor("file"))
   @Put("upload-profile-image")
   @ApiBearerAuth("access-token")
   @ApiOperation({

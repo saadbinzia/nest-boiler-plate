@@ -83,7 +83,7 @@ export class UserSession extends Model<UserSession> {
   @IsString()
   @IsOptional()
   @Column({
-    type: DataType.STRING(1000),
+    type: DataType.TEXT,
     comment: "User agent string of the client",
   })
   userAgent: string;
@@ -91,7 +91,7 @@ export class UserSession extends Model<UserSession> {
   @IsString()
   @IsOptional()
   @Column({
-    type: DataType.STRING(1000),
+    type: DataType.STRING(255),
     comment: "Browser name of the client",
   })
   browser: string;
@@ -99,7 +99,7 @@ export class UserSession extends Model<UserSession> {
   @IsString()
   @IsOptional()
   @Column({
-    type: DataType.STRING(1000),
+    type: DataType.STRING(100),
     comment: "Public IP address of the client",
   })
   publicIp: string;
@@ -107,7 +107,7 @@ export class UserSession extends Model<UserSession> {
   @IsString()
   @IsOptional()
   @Column({
-    type: DataType.STRING(1000),
+    type: DataType.STRING(100),
     comment: "Operating system of the client",
   })
   operatingSystem: string;

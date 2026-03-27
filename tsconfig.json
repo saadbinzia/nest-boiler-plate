@@ -12,13 +12,20 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
   },
   "exclude": [
-    "uploads" 
+    "uploads",
+    "../node_modules/@types/eslint__eslintrc"
   ]
 }

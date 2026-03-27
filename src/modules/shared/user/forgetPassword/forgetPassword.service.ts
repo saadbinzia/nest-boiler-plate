@@ -10,7 +10,10 @@ import { SystemSettingService } from "src/core/config/systemSetting.service";
 import { User } from "src/entities";
 import { UserSessionService } from "../../auth/userSession/userSession.service";
 import { UserVerificationCodeService } from "../../auth/userVerificationCode/userVerificationCode.service";
-import { ResetPasswordDTO, VerifyResetPasswordCodeDTO } from "../dto";
+import {
+  SharedResetPasswordDTO,
+  SharedVerifyResetPasswordCodeDTO,
+} from "../dto";
 import { UserService } from "../user.service";
 import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
 
@@ -49,19 +52,28 @@ export class ForgetPasswordService extends BaseService<User> {
    */
   async verifyCode(
     req: Request,
-    body: VerifyResetPasswordCodeDTO,
+    body: SharedVerifyResetPasswordCodeDTO,
     type: TVerificationCode,
   ): Promise<ApiResponse> {
+    // First, find the user by email
+    const user = await this._userService.findOne(req, {
+      email: body.email.toLowerCase(),
+    });
+
+    if (!user) {
+      const error = new Error("user_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
+
+    // Then find the verification code for that user
     const code = await this._userVerificationCodeService.findOne(
       req,
-      { code: body.code, type: type },
+      { code: body.code, type: type, userId: user.id },
       {
         include: [
           {
             model: User,
-            where: {
-              email: body.email,
-            },
           },
         ],
       },
@@ -99,7 +111,7 @@ export class ForgetPasswordService extends BaseService<User> {
         { status: VERIFICATION_CODE_STATUS.VERIFIED },
       );
 
-      if (code.user.registrationStatus == REGISTRATION_STATUSES.PENDING) {
+      if (code.user.registrationStatus == REGISTRATION_STATUSES.UNVERIFIED) {
         await this._userService.updateById(req, code.userId, {
           registrationStatus: REGISTRATION_STATUSES.COMPLETED,
         });
@@ -168,7 +180,7 @@ export class ForgetPasswordService extends BaseService<User> {
         { status: VERIFICATION_CODE_STATUS.VERIFIED },
       );
 
-      if (code.user.registrationStatus == REGISTRATION_STATUSES.PENDING) {
+      if (code.user.registrationStatus == REGISTRATION_STATUSES.UNVERIFIED) {
         await this._userService.updateById(req, code.userId, {
           registrationStatus: REGISTRATION_STATUSES.COMPLETED,
         });
@@ -196,7 +208,7 @@ export class ForgetPasswordService extends BaseService<User> {
    */
   async resetPassword(
     req: Request,
-    body: ResetPasswordDTO,
+    body: SharedResetPasswordDTO,
   ): Promise<ApiResponse> {
     const conditions = [];
 

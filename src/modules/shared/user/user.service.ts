@@ -46,12 +46,12 @@ export class UserService extends BaseService<User> {
         ],
         attributes: [
           "id",
-          "firstName",
-          "lastName",
-          "phoneNumber",
+          "fullName",
           "email",
           "role",
           "registrationStatus",
+          "createdAt",
+          "status",
         ],
       },
     );
@@ -168,7 +168,7 @@ export class UserService extends BaseService<User> {
 
     if (user) {
       if (
-        user.registrationStatus === REGISTRATION_STATUSES.PENDING.toString()
+        user.registrationStatus === REGISTRATION_STATUSES.UNVERIFIED.toString()
       ) {
         await this._userVerificationCodeService.createVerificationCodeByEmail(
           req,
@@ -211,6 +211,7 @@ export class UserService extends BaseService<User> {
         "users",
         "profile",
         file,
+        true,
       );
 
       return this._globalResponses.formatResponse(

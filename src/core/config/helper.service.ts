@@ -390,4 +390,64 @@ export class HelperService {
       return 0;
     }
   }
+
+  /**
+   * Track lease history changes in the new format
+   *
+   * @param {any} oldLease The lease object before update
+   * @param {any} newLease The lease object after update (or updateData merged with oldLease)
+   * @param {any} changedBy User object with id, name, email
+   * @param {string} action The action being performed (e.g., 'updated', 'created', 'terminated')
+   * @returns {object} History entry object keyed by timestamp
+   */
+  trackLeaseHistory(
+    oldLease: any,
+    newLease: any,
+    changedBy: { id: number; name?: string; email?: string },
+    action: string,
+  ): { [timestamp: string]: any } {
+    const timestamp = Date.now().toString();
+
+    // Extract only the fields we want to track (excluding IDs and metadata)
+    const fieldsToTrack = [
+      "startDate",
+      "endDate",
+      "monthlyRent",
+      "securityDeposit",
+      "paymentDueDay",
+      "status",
+      "terminationReason",
+      "terminationNotes",
+      "utilitiesIncluded",
+      "parkingIncluded",
+      "specialTerms",
+      "notes",
+    ];
+
+    const previousLease: any = {};
+    const newLeaseData: any = {};
+
+    fieldsToTrack.forEach((field) => {
+      previousLease[field] = oldLease?.[field] ?? null;
+      newLeaseData[field] = newLease?.[field] ?? null;
+    });
+
+    return {
+      [timestamp]: {
+        previousLease,
+        newLease: newLeaseData,
+        changedBy: {
+          id: changedBy.id,
+          name: changedBy.name || changedBy.email || "System",
+          email: changedBy.email || "",
+        },
+        action:
+          action === "create"
+            ? "created"
+            : action === "terminate"
+              ? "terminated"
+              : "updated",
+      },
+    };
+  }
 }

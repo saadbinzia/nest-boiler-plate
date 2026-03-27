@@ -22,27 +22,26 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-# YouTube Automation API
+# Residential Management System - API Backend
 
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
 
-A comprehensive NestJS-based API for YouTube automation platform that provides user management, video processing, streaming capabilities, and subscription management.
+A comprehensive NestJS-based API for residential property management that provides building management, user authentication, file handling, and notification services.
 
 ## 🚀 Features
 
 ### Core Functionality
-- **User Management**: Registration, authentication, social login, password reset
-- **Video Processing**: Upload, processing with FFmpeg, thumbnail generation
-- **Live Streaming**: Kubernetes-based stream management with Semper integration
-- **Channel Management**: YouTube channel integration and video migration
-- **Playlist Management**: Create and manage video playlists
-- **Subscription System**: Plan management with Stripe integration
-- **File Management**: S3 integration for file storage
-- **Email System**: Nodemailer with Handlebars templates
-- **Caching**: Redis-based caching system
+- **Property Management**: Buildings, floors, and spaces management
+- **User Management**: Staff and tenant management with role-based access
+- **Authentication**: JWT-based authentication with password reset
+- **File Management**: AWS S3 integration for property images and documents
+- **Email System**: Nodemailer with Handlebars templates for notifications
+- **Caching**: Redis-based caching system for performance
 - **Notifications**: Real-time notification system
+- **Media Management**: Image processing and optimization
+- **Dashboard Analytics**: Property statistics and insights
 
 ### Technical Features
 - **Authentication**: JWT-based authentication with Passport
@@ -66,31 +65,48 @@ src/
 ├── entities/       # Sequelize models
 ├── modules/        # Feature modules
 │   ├── admin/      # Admin panel functionality
+│   │   ├── auth/   # Admin authentication
+│   │   ├── properties/ # Property management
+│   │   └── user/   # User management
 │   ├── app/        # Main application modules
+│   │   ├── auth/   # User authentication
+│   │   └── user/   # User management
 │   ├── cron/       # Scheduled tasks
-│   ├── shared/     # Shared services and utilities
-│   ├── stream/     # Live streaming functionality
-│   └── video/      # Video processing
-└── workers/        # Background workers
+│   ├── mail/       # Email services
+│   ├── media/      # Media management
+│   └── shared/     # Shared services and utilities
+│       ├── auth/   # Shared authentication
+│       ├── cache/  # Caching services
+│       ├── notification/ # Notification system
+│       ├── s3/     # AWS S3 integration
+│       └── user/   # Shared user services
 ```
+
+### Request Lifecycle
+
+1. Client sends HTTP request with JWT (Authorization: Bearer)
+2. Guard authenticates request (Passport + JWT strategy)
+3. Controller receives request and validates DTOs (class-validator)
+4. Service layer executes business logic
+5. Repositories access database via Sequelize (transactions where needed)
+6. Cache layer (Redis) used for read-heavy endpoints
+7. File operations handled via S3 service for media/uploads
+8. Response mapped to DTOs and returned as JSON
 
 ## 📋 Prerequisites
 
-- **Node.js** (v16 or later)
+- **Node.js** (v18 or later)
 - **npm** or **yarn**
 - **PostgreSQL** (v12 or later)
 - **Redis** (for caching and sessions)
-- **FFmpeg** (for video processing)
-- **Kubernetes** (for stream management)
 - **AWS S3** (for file storage)
-- **Stripe** (for payments)
+- **SMTP Server** (for email notifications)
 
 ## 🛠️ Installation
 
-1. **Clone the repository:**
+1. **Navigate to the API directory:**
    ```bash
-   git clone <repository-url>
-   cd youtube-automation/api
+   cd api
    ```
 
 2. **Install dependencies:**
@@ -100,32 +116,7 @@ src/
 
 3. **Set up environment variables:**
    ```bash
-   # Create .env file from the template below
-   cp .env.example .env
-   # Edit .env with your configuration
-   
-   # Or create .env manually with the following variables:
-   ```
-
-4. **Database setup:**
-   ```bash
-   # Run migrations
-   npm run migrate
-   
-   # Or create a new migration
-   npm run migrate:create migration-name
-   ```
-
-5. **Install FFmpeg (if not already installed):**
-   ```bash
-   # macOS
-   brew install ffmpeg
-   
-   # Ubuntu/Debian
-   sudo apt update && sudo apt install ffmpeg
-   
-   # Windows
-   # Download from https://ffmpeg.org/download.html
+   # Create .env file with the following variables:
    ```
 
 ## 🚀 Running the Application
@@ -136,10 +127,10 @@ npm run start:dev
 ```
 
 **Local Development Notes:**
-- By default, the application uses the **Original Stream** implementation in development mode
-- **Semper Stream** integration requires Kubernetes and is disabled by default locally
-- To test Semper Stream locally, set `USE_SEMPER_STREAM=true` in your `.env` file
-- Kubernetes operations will be mocked in development mode with appropriate warnings
+- The application runs on port 3000 by default
+- Swagger documentation is available at `/api`
+- Database migrations run automatically on startup
+- Redis connection is required for caching
 
 ### Debug Mode
 ```bash
@@ -185,41 +176,57 @@ npm run test:debug
 
 ## 📁 Key Modules
 
-### Authentication (`/modules/app/auth`)
+### Property Management (`/modules/admin/properties`)
+- Buildings management (CRUD operations)
+- Floors management within buildings
+- Spaces/units management within floors
+- Property dashboard with analytics
+- Property image management
+
+### Authentication (`/modules/app/auth` & `/modules/admin/auth`)
 - JWT-based authentication
 - Local strategy for email/password
-- Social login integration
 - Password reset functionality
+- Role-based access control
+- User session management
 
-### Video Processing (`/modules/video`)
-- Video upload and processing
-- FFmpeg integration
-- Thumbnail generation
-- Video metadata extraction
-
-### Streaming (`/modules/stream`)
-- Kubernetes-based stream management
-- Semper integration
-- Stream lifecycle management
-- Error handling and monitoring
-
-### User Management (`/modules/app/user`)
+### User Management (`/modules/app/user` & `/modules/admin/user`)
+- Staff management (admin panel)
+- Tenant management
 - User registration and profile management
 - Email verification
-- Social login integration
-- User sessions
-
-### Subscription (`/modules/subscription`)
-- Plan management
-- Stripe integration
-- Subscription lifecycle
-- Payment processing
+- User role assignment
 
 ### File Management (`/modules/shared/attachment`)
-- S3 file upload
-- File validation
-- Image processing
+- AWS S3 file upload
+- File validation and processing
+- Image optimization
 - File metadata management
+- Property document storage
+
+### Media Management (`/modules/media`)
+- Image processing and optimization
+- File upload handling
+- Media metadata extraction
+- Thumbnail generation
+
+### Email System (`/modules/mail`)
+- Email template management
+- Automated notifications
+- Password reset emails
+- Property update notifications
+
+### Caching (`/modules/shared/cache`)
+- Redis-based caching
+- Performance optimization
+- Session management
+- Data caching strategies
+
+### Notifications (`/modules/shared/notification`)
+- Real-time notifications
+- Email notifications
+- System alerts
+- User notification preferences
 
 ## 🔧 Configuration
 
@@ -233,14 +240,15 @@ Key environment variables to configure:
 # =============================================================================
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=youtube_automation
+DB_NAME=residential_management
 DB_USERNAME=username
 DB_PASSWORD=password
 
 # =============================================================================
 # REDIS CONFIGURATION
 # =============================================================================
-REDIS_URL=redis://localhost:6379
+REDIS_HOST=localhost
+REDIS_PORT=6379
 REDIS_PASSWORD=
 
 # =============================================================================
@@ -257,37 +265,13 @@ AWS_REGION=us-east-1
 AWS_S3_BUCKET_NAME=your-s3-bucket-name
 
 # =============================================================================
-# STRIPE PAYMENT CONFIGURATION
-# =============================================================================
-STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
-
-# =============================================================================
 # EMAIL CONFIGURATION
 # =============================================================================
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password
-EMAIL_FROM=noreply@yourdomain.com
-
-# =============================================================================
-# SEMPER STREAM CONFIGURATION
-# =============================================================================
-# Enable/disable Semper Stream integration
-# In development mode, defaults to false unless explicitly set to true
-USE_SEMPER_STREAM=false
-
-# Kubernetes Configuration for Semper Stream
-SEMPER_STREAM_NAMESPACE=streams
-SEMPER_STREAM_GROUP=media.yourco.io
-SEMPER_STREAM_VERSION=v1
-SEMPER_STREAM_PLURAL=streams
-
-# =============================================================================
-# KUBERNETES CONFIGURATION
-# =============================================================================
-KUBERNETES_NAMESPACE=default
-DEFAULT_SECRET_KEY_FIELD=key
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=your-email@gmail.com
+MAIL_PASS=your-app-password
+MAIL_FROM=noreply@yourdomain.com
 
 # =============================================================================
 # APPLICATION CONFIGURATION
@@ -309,12 +293,6 @@ FILE_CACHE_MAX_BYTES=104857600
 # =============================================================================
 CRON_KEY=your-cron-secret-key
 ADMIN_CRON_SECRET=your-admin-cron-secret
-
-# =============================================================================
-# SUBSCRIPTION CONFIGURATION
-# =============================================================================
-TRIAL_PERIOD=7d
-MAIL_SUPPORT=support@yourdomain.com
 ```
 
 ## 📊 Database Migrations
@@ -377,12 +355,40 @@ For support and questions:
 - Check the API documentation at `/api`
 - Review the logs in the `public/logs.html` file
 
+## 📱 API Endpoints
+
+### Authentication
+- `POST /auth/login` - User login
+- `POST /auth/register` - User registration
+- `POST /auth/forgot-password` - Password reset request
+- `POST /auth/reset-password` - Password reset
+
+### Properties
+- `GET /properties/dashboard` - Properties overview
+- `GET /properties/buildings` - List buildings
+- `POST /properties/buildings` - Create building
+- `GET /properties/floors` - List floors
+- `POST /properties/floors` - Create floor
+- `GET /properties/spaces` - List spaces
+- `POST /properties/spaces` - Create space
+
+### Users
+- `GET /users` - List users
+- `POST /users` - Create user
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+
+### Media
+- `POST /media/upload` - Upload files
+- `GET /media/:id` - Get media file
+- `DELETE /media/:id` - Delete media file
+
 ## 🔗 Related Projects
 
-- Frontend application (if available)
-- Mobile application (if available)
-- Admin dashboard (if available)
+- **Admin Dashboard** (`/admin`) - Vue.js frontend for property management
+- **Mobile Application** (if available)
+- **Tenant Portal** (if available)
 
 ---
 
-Built with ❤️ using [NestJS](https://nestjs.com/)
+**Built with ❤️ using [NestJS](https://nestjs.com/)**

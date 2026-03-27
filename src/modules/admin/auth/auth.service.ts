@@ -6,7 +6,7 @@ import { ApiResponse } from "src/core/config/interface/globalResponses.interface
 import { Attachment } from "src/entities";
 import { SharedAuthService } from "src/modules/shared/auth/auth.service";
 import { UserService } from "../user/user.service";
-import { AuthDto } from "./dto/auth.dto";
+import { AdminAuthDto } from "./dto/auth.dto";
 import { Op } from "sequelize";
 
 const { USER_ROLES, RESPONSE_STATUSES } = GlobalEnums;
@@ -28,7 +28,7 @@ export class AuthService {
    * @returns {Promise<ApiResponse>}
    */
   public async login(
-    payload: AuthDto,
+    payload: AdminAuthDto,
     @Req() request: Request,
   ): Promise<ApiResponse> {
     return await this.validateUser(payload, request);
@@ -42,7 +42,7 @@ export class AuthService {
    * @returns {Promise<ApiResponse>}
    */
   async validateUser(
-    payload: AuthDto,
+    payload: AdminAuthDto,
     request?: Request,
   ): Promise<ApiResponse> {
     const user = await this._userService.findOne(
@@ -50,11 +50,7 @@ export class AuthService {
       {
         email: payload.email.toLowerCase(),
         role: {
-          [Op.in]: [
-            USER_ROLES.SUPER_ADMIN,
-            USER_ROLES.MANAGER,
-            USER_ROLES.STAFF,
-          ],
+          [Op.in]: [USER_ROLES.ADMIN, USER_ROLES.USER],
         },
       },
       {
@@ -66,8 +62,7 @@ export class AuthService {
           },
         ],
         attributes: [
-          "firstName",
-          "lastName",
+          "fullName",
           "password",
           "id",
           "email",
@@ -79,6 +74,7 @@ export class AuthService {
 
     if (!user) {
       const error = new Error("invalid_user_credentials");
+      error.name = "BadRequestError";
       throw error;
     }
 
@@ -89,6 +85,7 @@ export class AuthService {
 
     if (!match) {
       const error = new Error("invalid_user_credentials");
+      error.name = "BadRequestError";
       throw error;
     }
 

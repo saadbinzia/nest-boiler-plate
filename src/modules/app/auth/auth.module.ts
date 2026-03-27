@@ -18,11 +18,11 @@ import { SharedAuthService } from "src/modules/shared/auth/auth.service";
       defaultStrategy: "jwt",
       property: "user",
       session: false,
-    }),
+    }) as any,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
-    }),
+    }) as any,
     forwardRef(() => UserModule),
     forwardRef(() => AttachmentModule),
   ],

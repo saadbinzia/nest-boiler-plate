@@ -3,6 +3,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Query,
@@ -11,6 +12,7 @@ import {
   StreamableFile,
   UseInterceptors,
 } from "@nestjs/common";
+import { Readable } from "stream";
 import {
   ApiOperation,
   ApiParam,
@@ -22,6 +24,10 @@ import { Request, Response } from "express";
 import { createReadStream, existsSync, mkdirSync, statSync } from "fs";
 import * as path from "path";
 import { ErrorResponse } from "src/core/config/interface/swaggerResponse.dto";
+import { ATTACHMENT_STORAGE } from "../shared/attachment/attachment-storage.provider";
+import { LocalStorageService } from "../shared/attachment/local-storage.service";
+import { GCSService } from "../shared/gcs/gcs.service";
+import { S3Service } from "../shared/s3/s3.service";
 
 // MIME type mapping
 const MIME_TYPES: Record<string, string> = {
@@ -63,7 +69,13 @@ export class MediasController {
     "no-image.png",
   );
 
-  constructor() {
+  constructor(
+    @Inject(ATTACHMENT_STORAGE)
+    private readonly storageService:
+      | S3Service
+      | GCSService
+      | LocalStorageService,
+  ) {
     // Ensure uploads directory exists
     if (!existsSync(this.baseDir)) {
       mkdirSync(this.baseDir, { recursive: true });
@@ -129,8 +141,18 @@ export class MediasController {
         : filePath;
       const fullPath = path.join(this.baseDir, joinedPath);
 
-      // Check if file exists
+      // Check if file exists locally
       if (!existsSync(fullPath)) {
+        // Try S3, GCS, or local uploads (per STORAGE_TYPE) for attachment paths
+        if (joinedPath.startsWith("attachments/")) {
+          try {
+            return await this.serveRemoteStorageFile(joinedPath, download, res);
+          } catch (error) {
+            console.error("Error serving remote storage file:", error);
+            // Fall back to default image if remote storage fails
+            return this.serveDefaultImage(res);
+          }
+        }
         return this.serveDefaultImage(res);
       }
 
@@ -213,6 +235,53 @@ export class MediasController {
       return new StreamableFile(file);
     }
     throw new NotFoundException("Default image not found");
+  }
+
+  private async serveRemoteStorageFile(
+    filePath: string,
+    download: boolean,
+    res: Response,
+  ): Promise<StreamableFile> {
+    try {
+      const pathParts = filePath.split("/");
+      const folder = pathParts.slice(0, -1).join("/");
+      const filename = pathParts[pathParts.length - 1];
+
+      let fileBuffer: Buffer;
+      if (
+        this.storageService instanceof GCSService ||
+        this.storageService instanceof LocalStorageService
+      ) {
+        fileBuffer = await this.storageService.downloadBuffer(filePath);
+      } else {
+        fileBuffer = await this.storageService.downloadFile(filename, folder);
+      }
+
+      const ext = path.extname(filename).substring(1).toLowerCase();
+      const mimeType = MIME_TYPES[ext] || DEFAULT_MIME_TYPE;
+
+      res.status(200);
+      res.setHeader("Content-Length", fileBuffer.length);
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+
+      if (download) {
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${filename}"`,
+        );
+      }
+
+      const stream = new Readable();
+      stream.push(fileBuffer);
+      stream.push(null);
+
+      return new StreamableFile(stream);
+    } catch (error) {
+      console.error("Error serving remote storage file:", error);
+      throw new NotFoundException("File not found in object storage");
+    }
   }
 
   @Get("static/*path")
