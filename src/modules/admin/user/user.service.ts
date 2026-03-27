@@ -10,6 +10,7 @@ import * as bcrypt from "bcrypt";
 import { Request } from "express";
 import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
 import { AttachmentService } from "src/modules/shared/attachment/attachment.service";
+import { GCSService } from "src/modules/shared/gcs/gcs.service";
 import { plainToInstance } from "class-transformer";
 import { GetUsersQueryDTO } from "./dto/getUserQuerry.dto";
 import { Op } from "sequelize";
@@ -20,7 +21,6 @@ const {
   REGISTRATION_STATUSES,
   USER_ROLES,
 } = GlobalEnums;
-console.log(Object.values(USER_ROLES).map((item) => item === "user"));
 @Injectable()
 export class UserService extends BaseService<User> {
   constructor(
@@ -28,6 +28,7 @@ export class UserService extends BaseService<User> {
     private _attachmentService: AttachmentService,
 
     private _globalResponses: GlobalResponses,
+    private _gcsService: GCSService,
   ) {
     super(User);
   }
@@ -37,40 +38,76 @@ export class UserService extends BaseService<User> {
     req: AuthenticatedRequest,
     where: any,
     page: number,
-    limit: number,
+    limit: number | undefined,
     q?: string,
+    sortBy: string = "createdAt",
+    sortOrder: "ASC" | "DESC" = "DESC",
   ) {
     if (q?.trim()) {
       const likeOp = (Op as any).iLike || Op.like;
       const pattern = `%${q.trim()}%`;
       where[Op.or] = [
-        { firstName: { [likeOp]: pattern } },
-        { lastName: { [likeOp]: pattern } },
+        { fullName: { [likeOp]: pattern } },
         { email: { [likeOp]: pattern } },
-        { phoneNumber: { [likeOp]: pattern } },
       ];
     }
 
-    const { rows, meta } = await this.paginate(req, where, page, limit, {
+    const queryOptions: any = {
       attributes: [
         "id",
         "email",
         "role",
-        "firstName",
-        "lastName",
+        "fullName",
         "status",
-        "phoneNumber",
         "registrationStatus",
-        "createdBy",
-        "updatedBy",
         "createdAt",
         "updatedAt",
-        "deletedAt",
       ],
-      order: [["createdAt", "DESC"]],
+      distinct: true,
+      order: [[sortBy, sortOrder]],
+    };
+
+    let rows: any[];
+    let meta: any;
+
+    // If limit is provided, use pagination; otherwise return all results
+    if (limit !== undefined && limit !== null) {
+      const result = await this.paginate(req, where, page, limit, queryOptions);
+      rows = result.rows;
+      meta = result.meta;
+    } else {
+      // Return all results without pagination
+      const { rows: allRows, count } = await this.findAndCountAll(
+        req,
+        where,
+        queryOptions,
+      );
+      rows = allRows;
+      meta = {
+        total: count,
+        page: 1,
+        limit: count,
+        pages: 1,
+      };
+    }
+
+    // Add activeSpacesCount to each user
+    const usersWithActiveSpacesCount = rows.map((user: any) => {
+      const activeSpacesCount = user.leases ? user.leases.length : 0;
+
+      // Remove the leases array from the response to keep it clean
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { leases, ...userWithoutLeases } = user.toJSON
+        ? user.toJSON()
+        : user;
+
+      return {
+        ...userWithoutLeases,
+        activeSpacesCount,
+      };
     });
 
-    return { rows, meta };
+    return { rows: usersWithActiveSpacesCount, meta };
   }
 
   async findByEmail(
@@ -152,15 +189,6 @@ export class UserService extends BaseService<User> {
             attributes: ["filePath", "fileUniqueName"],
           },
         ],
-        attributes: [
-          "id",
-          "firstName",
-          "lastName",
-          "phoneNumber",
-          "email",
-          "role",
-          "registrationStatus",
-        ],
       },
     );
 
@@ -188,7 +216,15 @@ export class UserService extends BaseService<User> {
     req: AuthenticatedRequest,
     params: GetUsersQueryDTO = { page: 1, limit: 10 },
   ): Promise<ApiResponse> {
-    const { page = 1, limit = 10, q, role, status } = params;
+    const {
+      page = 1,
+      limit = 10,
+      q,
+      role,
+      status,
+      sortBy = "createdAt",
+      sortOrder = "DESC",
+    } = params;
 
     // WHERE
     const where: any = { id: { [Op.ne]: req.user.id } };
@@ -210,6 +246,8 @@ export class UserService extends BaseService<User> {
       page,
       limit,
       q,
+      sortBy,
+      sortOrder,
     );
 
     return this._globalResponses.formatResponse(
@@ -228,19 +266,23 @@ export class UserService extends BaseService<User> {
    */
   async getAllUsers(
     req: AuthenticatedRequest,
-    params: GetUsersQueryDTO = { page: 1, limit: 10 },
+    params: GetUsersQueryDTO = { page: 1 },
   ): Promise<ApiResponse> {
-    const { page = 1, limit = 10, q, role, status } = params;
+    const {
+      page = 1,
+      limit,
+      q,
+      role,
+      status,
+      sortBy = "createdAt",
+      sortOrder = "DESC",
+    } = params;
 
     // WHERE
     const where: any = {};
 
     const roles = Array.isArray(role) ? role : role ? [role] : [];
-    const exclude = [
-      USER_ROLES.MANAGER,
-      USER_ROLES.STAFF,
-      USER_ROLES.SUPER_ADMIN,
-    ];
+    const exclude = [USER_ROLES.ADMIN];
     if (roles.length) {
       where.role = { [Op.in]: roles.filter((r) => !exclude.includes(r)) };
     } else {
@@ -257,6 +299,8 @@ export class UserService extends BaseService<User> {
       page,
       limit,
       q,
+      sortBy,
+      sortOrder,
     );
 
     return this._globalResponses.formatResponse(
@@ -314,6 +358,7 @@ export class UserService extends BaseService<User> {
         "users",
         "profile",
         file,
+        true,
       );
 
       return this._globalResponses.formatResponse(
@@ -353,4 +398,33 @@ export class UserService extends BaseService<User> {
       "image_deleted",
     );
   }
+
+  /**
+   * Delete the user.
+   *
+   * @param {AuthenticatedRequest} req - The authenticated request object.
+   * @param {number} userId - The user ID.
+   * @return {Promise<object>} - A promise that resolves to an object with the status and data of the upload.
+   */
+  async deleteUser(req: AuthenticatedRequest, userId: number): Promise<object> {
+    // Get the target user to check their role
+    const targetUser = await User.findByPk(userId);
+
+    if (!targetUser) {
+      const error = new Error("user_not_found");
+      error.name = "NotFoundError";
+      throw error;
+    }
+
+    await this.delete(req, { id: userId });
+
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      null,
+      "user_deleted",
+    );
+  }
+
+  // ==================== Document Management ====================
 }

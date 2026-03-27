@@ -22,12 +22,7 @@ export class CreateUserDto {
   @ApiProperty({ example: "John", description: "User first name" })
   @IsString()
   @IsNotEmpty()
-  firstName: string;
-
-  @ApiProperty({ example: "Doe", description: "User last name" })
-  @IsString()
-  @IsNotEmpty()
-  lastName: string;
+  fullName: string;
 
   @ApiProperty({ example: "password123", description: "User password" })
   @IsString()

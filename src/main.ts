@@ -39,8 +39,8 @@ async function bootstrap() {
       "access-token",
     )
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api-docs", app, document);
+  const document = SwaggerModule.createDocument(app as any, config);
+  SwaggerModule.setup("api-docs", app as any, document);
 
   app.useGlobalFilters(new GlobalExceptionFilter());
 

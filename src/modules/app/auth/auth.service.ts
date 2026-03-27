@@ -60,8 +60,7 @@ export class AuthService {
             },
           ],
           attributes: [
-            "firstName",
-            "lastName",
+            "fullName",
             "password",
             "id",
             "email",
@@ -77,7 +76,7 @@ export class AuthService {
         throw error;
       }
 
-      if (user.registrationStatus == REGISTRATION_STATUSES.PENDING) {
+      if (user.registrationStatus == REGISTRATION_STATUSES.UNVERIFIED) {
         const error = new Error("user_not_verified");
         error.name = "BadRequestError";
         throw error;

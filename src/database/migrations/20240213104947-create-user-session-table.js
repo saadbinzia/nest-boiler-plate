@@ -26,9 +26,9 @@ module.exports = {
         comment: 'JWT or other authentication token'
       },
       status: { 
-        type: Sequelize.ENUM('active', 'expired', 'revoked'),
+        type: Sequelize.ENUM('ACTIVE', 'EXPIRED', 'REVOKED'),
         allowNull: false,
-        defaultValue: 'active',
+        defaultValue: 'ACTIVE',
         comment: 'Current status of the session'
       },
       remember_me: { 
@@ -36,22 +36,22 @@ module.exports = {
         defaultValue: false 
       },
       user_agent: { 
-        type: Sequelize.STRING(1000), 
+        type: Sequelize.TEXT, 
         allowNull: true,
         comment: 'User agent string of the client'
       },
       browser: { 
-        type: Sequelize.STRING(1000), 
+        type: Sequelize.STRING(255), 
         allowNull: true,
         comment: 'Browser name of the client'
       },
       public_ip: { 
-        type: Sequelize.STRING(1000), 
+        type: Sequelize.STRING(100), 
         allowNull: true,
         comment: 'Public IP address of the client'
       },
       operating_system: { 
-        type: Sequelize.STRING(1000), 
+        type: Sequelize.STRING(100), 
         allowNull: true,
         comment: 'Operating system of the client'
       },

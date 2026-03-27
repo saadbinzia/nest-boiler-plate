@@ -11,6 +11,7 @@ import {
   StreamableFile,
   UseInterceptors,
 } from "@nestjs/common";
+import { Readable } from "stream";
 import {
   ApiOperation,
   ApiParam,
@@ -22,6 +23,7 @@ import { Request, Response } from "express";
 import { createReadStream, existsSync, mkdirSync, statSync } from "fs";
 import * as path from "path";
 import { ErrorResponse } from "src/core/config/interface/swaggerResponse.dto";
+import { GCSService } from "../shared/gcs/gcs.service";
 
 // MIME type mapping
 const MIME_TYPES: Record<string, string> = {
@@ -63,7 +65,7 @@ export class MediasController {
     "no-image.png",
   );
 
-  constructor() {
+  constructor(private readonly gcsService: GCSService) {
     // Ensure uploads directory exists
     if (!existsSync(this.baseDir)) {
       mkdirSync(this.baseDir, { recursive: true });
@@ -129,8 +131,18 @@ export class MediasController {
         : filePath;
       const fullPath = path.join(this.baseDir, joinedPath);
 
-      // Check if file exists
+      // Check if file exists locally
       if (!existsSync(fullPath)) {
+        // Try to serve from GCS if it's an attachment path
+        if (joinedPath.startsWith("attachments/")) {
+          try {
+            return await this.serveGCSFile(joinedPath, download, res);
+          } catch (error) {
+            console.error("Error serving GCS file:", error);
+            // Fall back to default image if GCS fails
+            return this.serveDefaultImage(res);
+          }
+        }
         return this.serveDefaultImage(res);
       }
 
@@ -213,6 +225,56 @@ export class MediasController {
       return new StreamableFile(file);
     }
     throw new NotFoundException("Default image not found");
+  }
+
+  private async serveGCSFile(
+    filePath: string,
+    download: boolean,
+    res: Response,
+  ): Promise<StreamableFile> {
+    try {
+      // Extract folder and filename from path
+      const pathParts = filePath.split("/");
+      const folder = pathParts.slice(0, -1).join("/");
+      const filename = pathParts[pathParts.length - 1];
+
+      // Get file from GCS using the full path
+      const fullPath = `${folder}/${filename}`;
+      const bucket = this.gcsService["storage"].bucket(
+        this.gcsService["bucketName"],
+      );
+      const file = bucket.file(fullPath);
+      const [fileBuffer] = await file.download();
+
+      // Determine MIME type
+      const ext = path.extname(filename).substring(1).toLowerCase();
+      const mimeType = MIME_TYPES[ext] || DEFAULT_MIME_TYPE;
+
+      // Set response headers
+      res.status(200);
+      res.setHeader("Content-Length", fileBuffer.length);
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+
+      // Set Content-Disposition header for downloads
+      if (download) {
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${filename}"`,
+        );
+      }
+
+      // Create a readable stream from the buffer
+      const stream = new Readable();
+      stream.push(fileBuffer);
+      stream.push(null);
+
+      return new StreamableFile(stream);
+    } catch (error) {
+      console.error("Error serving GCS file:", error);
+      throw new NotFoundException("File not found in GCS");
+    }
   }
 
   @Get("static/*path")

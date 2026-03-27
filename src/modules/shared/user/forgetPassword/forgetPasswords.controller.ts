@@ -75,7 +75,7 @@ export class ForgetPasswordsController {
       a: {
         summary: "Sample request reset password",
         value: {
-          email: "saadbinzia055@gmail.com",
+          email: "mohsin055@gmail.com",
         },
       },
     },
@@ -139,7 +139,7 @@ export class ForgetPasswordsController {
       a: {
         summary: "Sample request reset password",
         value: {
-          email: "saadbinzia055@gmail.com",
+          email: "mohsin055@gmail.com",
         },
       },
     },

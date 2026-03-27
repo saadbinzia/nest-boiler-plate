@@ -92,50 +92,31 @@ export class User extends Model<User> {
   role: TUserRole;
 
   @IsString()
-  @Length(1, 100, {
-    message: "First name must be between 1 and 100 characters",
+  @Length(1, 255, {
+    message: "Full name must be between 1 and 255 characters",
   })
   @Column({
     type: DataType.STRING,
     allowNull: true,
   })
-  firstName: string;
-
-  @IsString()
-  @Length(1, 100, { message: "Last name must be between 1 and 100 characters" })
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-  })
-  lastName: string;
+  fullName: string;
 
   @IsIn(Object.values(ACTIVE_STATUSES))
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.ENUM(...Object.values(ACTIVE_STATUSES)),
     allowNull: false,
     defaultValue: ACTIVE_STATUSES.ACTIVE,
     validate: {
-      isIn: [Object.values(ACTIVE_STATUSES).map(Number)],
+      isIn: [Object.values(ACTIVE_STATUSES)],
     },
   })
   status: TActiveStatus;
-
-  @IsString()
-  @IsOptional()
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-    validate: {
-      is: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
-    },
-  })
-  phoneNumber: string;
 
   @IsIn(Object.values(REGISTRATION_STATUSES))
   @Column({
     type: DataType.ENUM(...Object.values(REGISTRATION_STATUSES)),
     allowNull: false,
-    defaultValue: REGISTRATION_STATUSES.PENDING,
+    defaultValue: REGISTRATION_STATUSES.UNVERIFIED,
   })
   registrationStatus: TRegistrationStatus;
 
@@ -202,12 +183,7 @@ export class User extends Model<User> {
   profileImage: Attachment;
 
   // ====================== VIRTUAL FIELDS ======================
-
-  get fullName(): string {
-    return `${this.firstName || ""} ${this.lastName || ""}`.trim();
-  }
-
-  get isSuperAdmin(): boolean {
-    return this.role === USER_ROLES.SUPER_ADMIN;
+  get isAdmin(): boolean {
+    return this.role === USER_ROLES.ADMIN;
   }
 }

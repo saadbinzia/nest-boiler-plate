@@ -35,6 +35,9 @@ import {
 import { Roles } from "src/core/decorators/role-decorator";
 import { RolesGuard } from "src/core/guards/checkRole.guard";
 import { JwtAuthGuard } from "src/core/guards/jwt-auth.guard";
+import { PermissionsGuard } from "src/core/guards/permissions.guard";
+import { RequirePermission } from "src/core/decorators/permissions.decorator";
+import { Permission } from "src/core/config/rbac";
 import { AdminUpdateUserDTO, UserDTO } from "./dto";
 import { UserService } from "./user.service";
 import { GetUsersQueryDTO } from "./dto/getUserQuerry.dto";
@@ -42,6 +45,8 @@ import { GetUsersQueryDTO } from "./dto/getUserQuerry.dto";
 const { USER_ROLES, RESPONSE_STATUSES } = GlobalEnums;
 @ApiTags("Admin Users")
 @Controller("admin/users")
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@ApiBearerAuth("access-token")
 export class UsersController {
   constructor(
     private readonly _userService: UserService,
@@ -56,9 +61,7 @@ export class UsersController {
    * @returns {Promise<JSON>}
    */
   @Post("create-user")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(USER_ROLES.SUPER_ADMIN)
-  @ApiBearerAuth("access-token")
+  @RequirePermission(Permission.USERS_CREATE)
   @ApiOperation({
     summary: "User Sign Up",
     description: "User can sign up from app end.",
@@ -86,19 +89,15 @@ export class UsersController {
         summary: "Sample that return success response",
         value: {
           email: "someuniqueemail",
-          firstName: "Saad",
-          lastName: "Bin Zia",
-          phoneNumber: "+923034197551",
+          fullName: "Mohsin Shoaib",
           password: "P@ss2word",
         },
       },
       b: {
         summary: "Sample that return validation error",
         value: {
-          email: "saadbinzia055",
-          firstName: "Saad",
-          lastName: "Bin Zia",
-          phoneNumber: "+923034197551",
+          email: "mohsinshoaib055",
+          fullName: "Mohsin Shoaib",
           password: "pass2word",
         },
       },
@@ -110,11 +109,9 @@ export class UsersController {
     @Body() body: UserDTO,
   ): Promise<void> {
     try {
-      const response = await this._userService.createUser(
-        req,
-        body,
-        USER_ROLES.USER,
-      );
+      // Use role from request body, default to USER if not provided
+      const role = body.role || USER_ROLES.USER;
+      const response = await this._userService.createUser(req, body, role);
       res.status(response.statusCode).json(response);
     } catch (error) {
       const errorResponse = this._globalResponses.formatResponse(
@@ -135,11 +132,8 @@ export class UsersController {
    * @param {AuthenticatedRequest} req
    * @returns {Promise<JSON>}
    */
-  @UseGuards(JwtAuthGuard)
   @Get("find-user-by-id/:userId")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(USER_ROLES.SUPER_ADMIN)
-  @ApiBearerAuth("access-token")
+  @RequirePermission(Permission.USERS_VIEW)
   @ApiParam({
     name: "userId",
     type: String,
@@ -193,11 +187,8 @@ export class UsersController {
    * @param {AuthenticatedRequest} req
    * @returns {Promise<JSON>}
    */
-  @UseGuards(JwtAuthGuard)
   @Post("get-all-staff")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(USER_ROLES.SUPER_ADMIN)
-  @ApiBearerAuth("access-token")
+  @RequirePermission(Permission.USERS_MANAGE_STAFF)
   @ApiOperation({
     summary: "Get all users (paginated + search)",
     description: "Get all users if token is valid.",
@@ -244,11 +235,8 @@ export class UsersController {
    * @param {AuthenticatedRequest} req
    * @returns {Promise<JSON>}
    */
-  @UseGuards(JwtAuthGuard)
   @Post("get-all-users")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(USER_ROLES.SUPER_ADMIN)
-  @ApiBearerAuth("access-token")
+  @RequirePermission(Permission.USERS_MANAGE_TENANTS)
   @ApiOperation({
     summary: "Get all users (paginated + search)",
     description: "Get all users if token is valid.",
@@ -296,12 +284,8 @@ export class UsersController {
    * @param {Object} param
    * @returns {Promise<JSON>}
    */
-  @UseGuards(JwtAuthGuard)
   @Put("update-user-by-id/:userId")
-  @Get("find-user-by-id/:userId")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(USER_ROLES.SUPER_ADMIN)
-  @ApiBearerAuth("access-token")
+  @RequirePermission(Permission.USERS_EDIT)
   @ApiParam({
     name: "userId",
     type: String,
@@ -339,22 +323,13 @@ export class UsersController {
       valid: {
         summary: "Valid update payload",
         value: {
-          firstName: "Test",
-          lastName: "Dev",
-          phoneNumber: "+923034197551",
+          fullName: "Test Dev",
         },
       },
       invalidName: {
         summary: "Invalid name (contains digits)",
         value: {
-          firstName: "T3st",
-          lastName: "Dev1",
-        },
-      },
-      invalidPhone: {
-        summary: "Invalid phone format",
-        value: {
-          phoneNumber: "12345",
+          fullName: "T3st Dev1",
         },
       },
     },
@@ -389,7 +364,7 @@ export class UsersController {
   @Put("upload-profile-image-by-id/:userId")
   @Get("find-user-by-id/:userId")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(USER_ROLES.SUPER_ADMIN)
+  @Roles(USER_ROLES.ADMIN)
   @ApiBearerAuth("access-token")
   @ApiParam({
     name: "userId",
@@ -449,9 +424,8 @@ export class UsersController {
   }
 
   @Delete("delete-profile-image-by-id/:userId")
-  @Get("find-user-by-id/:userId")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(USER_ROLES.SUPER_ADMIN)
+  @Roles(USER_ROLES.ADMIN)
   @ApiBearerAuth("access-token")
   @ApiParam({
     name: "userId",
@@ -485,6 +459,54 @@ export class UsersController {
   ): Promise<void> {
     try {
       res.json(await this._userService.deleteImage(req, +userId));
+    } catch (error) {
+      const errorResponse = this._globalResponses.formatResponse(
+        req,
+        RESPONSE_STATUSES.ERROR,
+        error,
+        "default",
+      );
+
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  }
+
+  @Delete("delete-user-by-id/:userId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(USER_ROLES.ADMIN)
+  @ApiBearerAuth("access-token")
+  @ApiParam({
+    name: "userId",
+    type: String,
+    description: "The user id",
+    required: true,
+  })
+  @ApiOperation({
+    summary: "Delete user",
+    description: "Delete user if token is valid.",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - Token is missing or invalid",
+    type: unAuthorizedResponse,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "User deleted successfully",
+    type: SuccessResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Some kind of error",
+    type: ErrorResponse,
+  })
+  async deleteUser(
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+    @Param() { userId }: { userId: string },
+  ): Promise<void> {
+    try {
+      res.json(await this._userService.deleteUser(req, +userId));
     } catch (error) {
       const errorResponse = this._globalResponses.formatResponse(
         req,

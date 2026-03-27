@@ -142,22 +142,13 @@ export class UsersController {
       valid: {
         summary: "Valid update payload",
         value: {
-          firstName: "John",
-          lastName: "Doe",
-          phoneNumber: "+923001234567",
+          fullName: "John",
         },
       },
       invalidName: {
         summary: "Invalid name (contains numbers)",
         value: {
-          firstName: "J0hn",
-          lastName: "Doe1",
-        },
-      },
-      invalidPhone: {
-        summary: "Invalid phone format",
-        value: {
-          phoneNumber: "12345",
+          fullName: "J0hn",
         },
       },
     },
@@ -295,7 +286,7 @@ export class UsersController {
       a: {
         summary: "Sample request rigistration code",
         value: {
-          email: "saadbinzia055@gmail.com",
+          email: "mohsin055@gmail.com",
         },
       },
     },
@@ -359,7 +350,7 @@ export class UsersController {
       a: {
         summary: "Sample for rigistration",
         value: {
-          email: "devtester@site.com",
+          email: "mohsin055@gmail.com",
           code: "6481",
         },
       },

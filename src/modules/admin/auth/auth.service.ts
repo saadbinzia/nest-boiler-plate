@@ -50,11 +50,7 @@ export class AuthService {
       {
         email: payload.email.toLowerCase(),
         role: {
-          [Op.in]: [
-            USER_ROLES.SUPER_ADMIN,
-            USER_ROLES.MANAGER,
-            USER_ROLES.STAFF,
-          ],
+          [Op.in]: [USER_ROLES.ADMIN, USER_ROLES.USER],
         },
       },
       {
@@ -66,8 +62,7 @@ export class AuthService {
           },
         ],
         attributes: [
-          "firstName",
-          "lastName",
+          "fullName",
           "password",
           "id",
           "email",

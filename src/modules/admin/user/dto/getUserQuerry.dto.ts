@@ -8,6 +8,7 @@ import {
   Max,
   Min,
   IsArray,
+  IsIn,
 } from "class-validator";
 
 export class GetUsersQueryDTO {
@@ -20,14 +21,15 @@ export class GetUsersQueryDTO {
 
   @ApiPropertyOptional({
     example: 10,
-    description: "Number of users per page (max 100)",
+    description:
+      "Number of users per page (max 100). If not provided, returns all results.",
   })
   @Type(() => Number)
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(100)
-  limit?: number = 10;
+  limit?: number;
 
   @ApiPropertyOptional({
     example: "john",
@@ -41,7 +43,7 @@ export class GetUsersQueryDTO {
     description: "Filter by role(s)",
     isArray: true,
     type: String,
-    example: ["super_admin", "admin"],
+    example: ["ADMIN"],
   })
   @IsOptional()
   @Transform(({ value }) => {
@@ -53,8 +55,32 @@ export class GetUsersQueryDTO {
   @IsString({ each: true })
   role?: string[];
 
-  @ApiPropertyOptional({ example: "ACTIVE", description: "Filter by status" })
+  @ApiPropertyOptional({
+    example: 10,
+    description: "Filter by status (10 = Active, 20 = Inactive)",
+    enum: [10, 20],
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([10, 20])
+  status?: number;
+
+  @ApiPropertyOptional({
+    example: "fullName",
+    description: "Sort by field (fullName, email, status, createdAt)",
+  })
   @IsOptional()
   @IsString()
-  status?: string;
+  sortBy?: string = "createdAt";
+
+  @ApiPropertyOptional({
+    example: "DESC",
+    description: "Sort order (ASC or DESC)",
+    enum: ["ASC", "DESC"],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(["ASC", "DESC"])
+  sortOrder?: "ASC" | "DESC" = "DESC";
 }

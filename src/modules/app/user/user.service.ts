@@ -3,6 +3,19 @@ import { BaseService } from "src/core/base/base.service";
 import { User } from "src/entities";
 import { AuthenticatedRequest } from "src/core/config/interface/request.interface";
 import { Request } from "express";
+import { GlobalEnums } from "src/core/config/globalEnums";
+import GlobalResponses from "src/core/config/GlobalResponses";
+import { ApiResponse } from "src/core/config/interface/globalResponses.interface";
+import { CreateUserDto } from "./dto/create-user.dto";
+import * as bcrypt from "bcrypt";
+import { plainToInstance } from "class-transformer";
+
+const {
+  RESPONSE_STATUSES,
+  ACTIVE_STATUSES,
+  REGISTRATION_STATUSES,
+  USER_ROLES,
+} = GlobalEnums;
 
 /**
  * User Service
@@ -10,7 +23,7 @@ import { Request } from "express";
  */
 @Injectable()
 export class UserService extends BaseService<User> {
-  constructor() {
+  constructor(private readonly _globalResponses: GlobalResponses) {
     super(User);
   }
 
@@ -26,98 +39,56 @@ export class UserService extends BaseService<User> {
     return this.findOne(req, { email: email.toLowerCase() });
   }
 
-  // /**
-  //  * Create a new user
-  //  * @param {CreateUserDto} createUserDto - User data transfer object
-  //  * @returns {Promise<User>} The created user
-  //  * @throws {Error} If user creation fails or validation error occurs
-  //  */
-  // async createNewUser(
-  //   req: Request | AuthenticatedRequest,
-  //   createUserDto: CreateUserDto,
-  // ): Promise<User> {
-  //   try {
-  //     // Check if user with email already exists
-  //     const userExists = await this.findByEmail(req, createUserDto.email);
-  //     if (
-  //       userExists &&
-  //       userExists.registrationStatus !== REGISTRATION_STATUSES.PENDING
-  //     ) {
-  //       const error = new Error("email_already_exists");
-  //       error.name = "ConflictError";
-  //       throw error;
-  //     }
+  /**
+   * Create user
+   * @description Create new user record for client registration.
+   * @param {Request} req
+   * @param {CreateUserDto} payload
+   * @return {Promise<ApiResponse>}
+   */
+  async createUser(req: Request, payload: CreateUserDto): Promise<ApiResponse> {
+    const userExists = await this.findByEmail(req, payload.email);
 
-  //     // Hash password
-  //     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    // Check if user exists against this email then notify user.
+    if (userExists) {
+      const error = new Error("email_already_exists");
+      error.name = "ConflictError";
+      throw error;
+    }
 
-  //     if (
-  //       userExists &&
-  //       userExists.registrationStatus === REGISTRATION_STATUSES.PENDING
-  //     ) {
-  //       // Update existing pending user
-  //       const [updatedCount, [updatedUser]] = await this.update(
-  //         req,
-  //         { id: userExists.id },
-  //         {
-  //           ...createUserDto,
-  //           email: createUserDto?.email?.toLowerCase(),
-  //           password: hashedPassword,
-  //           role: USER_ROLES.USER,
-  //           status: ACTIVE_STATUSES.ACTIVE,
-  //           registrationStatus: REGISTRATION_STATUSES.PENDING,
-  //         } as any,
-  //       );
+    let hashPass = null;
 
-  //       if (!updatedCount) {
-  //         throw new Error("Failed to update pending user");
-  //       }
+    if (payload.password) {
+      hashPass = await bcrypt.hash(payload.password, 10);
+    }
 
-  //       // Clear password from the returned user object
-  //       const userJson = updatedUser.get({ plain: true });
-  //       delete userJson.password;
+    // Always set role to USER for client signups (security: prevent role escalation)
+    const userPayload = {
+      email: payload.email.toLowerCase(),
+      fullName: payload.fullName,
+      password: hashPass,
+      role: USER_ROLES.USER,
+      status: ACTIVE_STATUSES.ACTIVE,
+      registrationStatus: REGISTRATION_STATUSES.UNVERIFIED,
+    };
 
-  //       await this._userVerificationCodeService.createVerificationCodeByEmail(
-  //         req,
-  //         userJson.email,
-  //         VERIFICATION_CODE_TYPE.REGISTRATION,
-  //       );
-  //       return userJson as User;
-  //     } else {
-  //       // Create user
-  //       const newUser = await this.create(req, {
-  //         ...createUserDto,
-  //         email: createUserDto?.email?.toLowerCase(),
-  //         password: hashedPassword,
-  //         role: USER_ROLES.USER,
-  //         status: ACTIVE_STATUSES.ACTIVE,
-  //         registrationStatus: REGISTRATION_STATUSES.PENDING,
-  //       } as any);
+    const userData = plainToInstance(User, userPayload);
 
-  //       if (!newUser) {
-  //         throw new Error("Failed to create user");
-  //       }
+    const newUser = await this.create(req, userData);
 
-  //       // Clear password from the returned user object
-  //       const userJson = newUser.get({ plain: true });
-  //       delete userJson.password;
+    if (!newUser) {
+      throw new Error("Failed to create user");
+    }
 
-  //       await this._userVerificationCodeService.createVerificationCodeByEmail(
-  //         req,
-  //         userJson.email?.toLowerCase(),
-  //         VERIFICATION_CODE_TYPE.REGISTRATION,
-  //       );
-  //       return userJson as User;
-  //     }
-  //   } catch (error) {
-  //     // Re-throw the error with a name that can be checked in the controller
-  //     if (
-  //       error.name === "SequelizeValidationError" ||
-  //       error.name === "SequelizeUniqueConstraintError"
-  //     ) {
-  //       error.name = "ValidationError";
-  //     }
-  //     throw error;
-  //   }
-  // }
+    const result = { ...newUser["dataValues"] };
+
+    delete result.password; // Remove the 'password' property
+
+    return this._globalResponses.formatResponse(
+      req,
+      RESPONSE_STATUSES.SUCCESS,
+      result,
+      "user_created",
+    );
+  }
 }

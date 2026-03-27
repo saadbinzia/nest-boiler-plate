@@ -1,11 +1,5 @@
-import {
-  IsString,
-  Matches,
-  IsOptional,
-  IsBoolean,
-  IsNotEmpty,
-} from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class ImageDTO {
   @ApiProperty({
@@ -13,10 +7,6 @@ export class ImageDTO {
     example: "images/avatar.jpg",
   })
   @IsString()
-  @Matches(/^[a-zA-Z0-9_\-/.]+$/, {
-    message:
-      "File path can only contain letters, numbers, underscores, hyphens, slashes, and dots",
-  })
   @IsNotEmpty({ message: "File path is required" })
   readonly path: string;
 

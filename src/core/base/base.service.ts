@@ -247,7 +247,7 @@ export class BaseService<T extends Model> {
    * @param {WhereOptions} condition - The where clause for the query
    * @param {number} page - Page number (1-based)
    * @param {number} limit - Number of records per page
-   * @param {Omit<FindOptions, 'limit' | 'offset' | 'where'>} options - Additional query options
+   * @param {Omit<FindAndCountOptions, 'limit' | 'offset' | 'where'>} options - Additional query options
    * @returns {Promise<{data: T[]; meta: {total: number; page: number; limit: number; pages: number}}>} Paginated result
    */
   public async paginate(
@@ -255,7 +255,7 @@ export class BaseService<T extends Model> {
     condition: WhereOptions = {},
     page: number = 1,
     limit: number = 10,
-    options: Omit<FindOptions, "limit" | "offset" | "where"> = {},
+    options: Omit<FindAndCountOptions, "limit" | "offset" | "where"> = {},
   ): Promise<{
     rows: T[];
     meta: { total: number; page: number; limit: number; pages: number };
